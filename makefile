@@ -1,27 +1,25 @@
 # Variables
 
-CXX            := g++
-CXX_FLAGS      := -std=c++17 -ggdb
+SRC             := src
+BIN             := bin
+EXE             := tempest
 
-BIN            := bin
-SRC            := src
-INC            := include
+CXX_DEBUG       := g++ -std=c++17 -I$(SRC) -DTEMPEST_DEBUG -ggdb
+CXX_RELEASE     := g++ -std=c++17 -I$(SRC) -DTEMPEST_RELEASE -O2
 
-LIB            :=
-LIB_FLAGS      :=
+# Dependencies & Tasks
 
-EXE            := tempest
+all:            debug
 
-# Tasks
+debug:          $(BIN)/$(EXE)d
 
-all:           $(BIN)/$(EXE)
+release:        $(BIN)/$(EXE)
 
-run:           clean all
-	             clear
-	             ./$(BIN)/$(EXE)
+$(BIN)/$(EXE)d: $(SRC)/**
+	              $(CXX_DEBUG) $(SRC)/main.cpp -o $@
 
-$(BIN)/$(EXE): $(SRC)/*.cpp
-	             $(CXX) $(CXX_FLAGS) -I$(INC) $^ -o $@ $(LIB_FLAGS) $(LIB)
+$(BIN)/$(EXE):  $(SRC)/**
+	              $(CXX_RELEASE) $(SRC)/main.cpp -o $@
 
 clean:
-	             $(RM) $(BIN)/*
+	              $(RM) $(BIN)/**

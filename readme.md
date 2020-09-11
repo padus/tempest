@@ -1,3 +1,3 @@
-# WeatherFlow Tempest UDP Broadcast Proxy
+# WeatherFlow Tempest UDP Relay
 
-A simple UDP proxy to repackage WeatherFlow Tempest data into Ecowitt format and POST it to Hubitat
+A simple UDP relay to receive WeatherFlow Tempest UDP data, optionally repackage JSON into Ecowitt format, and POST it to Hubitat

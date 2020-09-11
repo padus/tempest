@@ -8,7 +8,7 @@
       "name": "(gdb) Launch",
       "type": "cppdbg",
       "request": "launch",
-      "program": "${workspaceFolder}/bin/tempest",
+      "program": "${workspaceFolder}/bin/tempestd",
       "args": [],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
