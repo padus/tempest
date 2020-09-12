@@ -1,3 +1,11 @@
+#
+# App:         WeatherFlow Tempest UDP Relay 
+# Author:      Mirco Caramori
+# Repository:  https://github.com/mircolino/tempest
+#
+# Description: instruct git to ignore files and directories that should not be save in the repository
+#
+
 /bin/
 /temp/
 

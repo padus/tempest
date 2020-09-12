@@ -1,3 +1,16 @@
+#
+# App:         WeatherFlow Tempest UDP Relay 
+# Author:      Mirco Caramori
+# Repository:  https://github.com/mircolino/tempest
+#
+# Description: project editing enforcement
+#
+# Settings:    tab size 2
+#              tab expands to spaces (except makefile where <TAB>s are required)
+#              utf-8 encoding
+#              \n newline
+#              empty line at the EOF
+
 root = true
 
 [*]

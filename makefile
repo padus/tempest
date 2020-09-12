@@ -1,3 +1,16 @@
+#
+# App:         WeatherFlow Tempest UDP Relay 
+# Author:      Mirco Caramori
+# Repository:  https://github.com/mircolino/tempest
+#
+# Description: application building
+#
+# Usage:       make release (or just make)      build distribuition bin/tempest
+#              make debug                       build development version bin/tempestd
+#              make clean                       clean building environment
+#              make tree                        build building directy tree structure  
+#
+
 # Functions
 
 rwildcard = $(wildcard $1$2)$(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
