@@ -83,10 +83,6 @@ int main(int argc, char* const argv[]) {
     // stop
     //
 
-    LOG_INFO << "Roll the log please!";
-    LOG_WARN << "Roll the log please!";
-    LOG_ERROR << "Roll the log please!";
-
     return (EXIT_SUCCESS);
   }
 

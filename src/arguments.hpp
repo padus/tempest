@@ -70,8 +70,11 @@ public:
     //
     // print original command line
     //
-    text.str(argv[0]);
-    for (int idx = 1; idx < argc; idx++) text << " " << argv[idx];
+    text.str("");
+    for (int idx = 0; idx < argc; idx++) {
+      if (!idx) text << argv[idx];
+      else text << " " << argv[idx];
+    }
   }
 
   static void PrintUsage(ostringstream& text) {
