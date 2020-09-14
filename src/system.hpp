@@ -18,6 +18,9 @@
 
 #include <filesystem>
 
+#include <cstdio>
+#include <ctime>
+
 #include <string>
 #include <regex>
 

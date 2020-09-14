@@ -30,7 +30,7 @@ int main(int argc, char* const argv[]) {
   fs::path log_name = app_name.replace_extension(".log");
 
   // initialize logger
-  nanolog::initialize(nanolog::GuaranteedLogger(), log_name, 8);
+  nanolog::initialize(nanolog::GuaranteedLogger(), log_name.string(), 8);
 
   // process command line
   string address;
@@ -82,6 +82,10 @@ int main(int argc, char* const argv[]) {
     //
     // stop
     //
+
+    LOG_INFO << "Roll the log please!";
+    LOG_WARN << "Roll the log please!";
+    LOG_ERROR << "Roll the log please!";
 
     return (EXIT_SUCCESS);
   }

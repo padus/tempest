@@ -137,8 +137,8 @@ namespace nanolog
      * log_file_name - root of the file name. For example - "./tmp/nanolog.log"
      * This will create log files of the form -
      * ./tmp/nanolog.log
-     * ./tmp/nanolog1.log
-     * ./tmp/nanolog2.log
+     * ./tmp/nanolog_2020-09-14-10-15-21.log
+     * ./tmp/nanolog_2020-10-07-17-35-43.log
      * etc.
      * log_file_roll_size_mb - mega bytes after which we roll to next log file.
      */

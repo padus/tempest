@@ -23,27 +23,22 @@
 
 namespace
 {
-
-    /* Returns microseconds since epoch */
     uint64_t timestamp_now()
     {
+	// returns microseconds since epoch
     	return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
     }
 
-    /* I want [2016-10-13 00:01:23.528514] */
     void format_timestamp(std::ostream & os, uint64_t timestamp)
     {
-	// The next 3 lines do not work on MSVC!
-	// auto duration = std::chrono::microseconds(timestamp);
-	// std::chrono::high_resolution_clock::time_point time_point(duration);
-	// std::time_t time_t = std::chrono::high_resolution_clock::to_time_t(time_point);
+	// format: [2016-10-13 00:01:23.528514]
+
 	std::time_t time_t = timestamp / 1000000;
-	auto gmtime = std::gmtime(&time_t);
+	struct tm * local_time = std::localtime(&time_t);
+
 	char buffer[32];
-	strftime(buffer, 32, "%Y-%m-%d %T.", gmtime);
-	char microseconds[7];
-	sprintf(microseconds, "%06llu", timestamp % 1000000);
-	os << '[' << buffer << microseconds << ']';
+	sprintf(buffer, "[%04d-%02d-%02d %02d:%02d:%02d.%06llu]", local_time->tm_year + 1900, local_time->tm_mon + 1, local_time->tm_mday, local_time->tm_hour, local_time->tm_min, local_time->tm_sec, timestamp % 1000000);
+	os << buffer;
     }
 
     std::thread::id this_thread_id()
@@ -552,7 +547,10 @@ namespace nanolog
 	    : m_log_file_roll_size_bytes(log_file_roll_size_mb * 1024 * 1024)
 	    , m_name(log_file_name)
 	{
-	    roll_file();
+            // open logging file and start appending
+	    m_os.reset(new std::ofstream());
+	    m_os->open(m_name, std::ofstream::out | std::ofstream::app);
+	    m_bytes_written = m_os->tellp();
 	}
 	
 	void write(NanoLogLine & logline)
@@ -575,18 +573,32 @@ namespace nanolog
 		m_os->close();
 	    }
 
+	    // create a timestamp to to be used as suffix
+	    time_t raw_time;
+	    struct tm * time_info;
+
+	    time(&raw_time);
+	    time_info = localtime (&raw_time);
+
+	    char time_stamp[32];
+	    sprintf(time_stamp, "_%04d-%02d-%02d-%02d-%02d-%02d", time_info->tm_year + 1900, time_info->tm_mon + 1, time_info->tm_mday, time_info->tm_hour, time_info->tm_min, time_info->tm_sec);
+
+	    // create a new log archive name with a timestamp suffix
+	    std::filesystem::path log_archive_name = m_name;
+	    
+	    std::string new_file_name = log_archive_name.stem().string() + time_stamp + log_archive_name.extension().string();
+            log_archive_name.replace_filename(new_file_name);
+            
+	    // archive the log
+	    rename(m_name.c_str(), log_archive_name.string().c_str());
+
+            // create a new log file with the same original name 
 	    m_bytes_written = 0;
 	    m_os.reset(new std::ofstream());
-	    // TODO Optimize this part. Does it even matter ?
-	    std::string log_file_name = m_name;
-	    log_file_name.append(".");
-	    log_file_name.append(std::to_string(++m_file_number));
-	    log_file_name.append(".log");
-	    m_os->open(log_file_name, std::ofstream::out | std::ofstream::trunc);
+	    m_os->open(m_name, std::ofstream::out | std::ofstream::trunc);
 	}
 
     private:
-	uint32_t m_file_number = 0;
 	std::streamoff m_bytes_written = 0;
 	uint32_t const m_log_file_roll_size_bytes;
 	std::string const m_name;
