@@ -1,9 +1,10 @@
 //
 // App:         WeatherFlow Tempest UDP Relay 
 // Author:      Mirco Caramori
+// Copyright:   (c) 2020 Mirco Caramori
 // Repository:  https://github.com/mircolino/tempest
 //
-// Description: class to handle application version info
+// Description: application versioning
 //
 
 #ifndef TEMPEST_VERSION

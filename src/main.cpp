@@ -1,9 +1,10 @@
 //
 // App:         WeatherFlow Tempest UDP Relay 
 // Author:      Mirco Caramori
+// Copyright:   (c) 2020 Mirco Caramori
 // Repository:  https://github.com/mircolino/tempest
 // 
-// Description: main source file
+// Description: application entry point
 //
 
 // Includes -------------------------------------------------------------------------------------------------------------------
@@ -23,42 +24,64 @@ using namespace tempest;
 
 int main(int argc, char* const argv[]) {
 
+  // normalize application path and deduce log filename from it 
+  namespace fs = std::filesystem;
+  fs::path app_name = fs::canonical(argv[0]);
+  fs::path log_name = app_name.replace_extension(".log");
+
+  // initialize logger
+  nanolog::initialize(nanolog::GuaranteedLogger(), log_name, 8);
+
+  // process command line
   string address;
   string path;
   int port;
   int ecowitt;
   int log;
   bool daemon;
-  ostringstream text;
 
-  // Arguments::PrintCommandLine(argc, argv, text);
-  // cout << endl;
-  // cout << text.str();
+  ostringstream text;
 
   Arguments args = Arguments(argc, argv);
 
   if (args.IsCommandLineInvalid()) {
+    // print error (to standard output)
     cout << "Invalid command line." << endl << endl;
     args.PrintUsage(text);
     cout << text.str();
+
+    // log error
+    Arguments::PrintCommandLine(argc, argv, text);
+    LOG_ERROR << "Command line \"" << text.str() << "\" is invalid.";
 
     return (EXIT_FAILURE);
   }
 
   if (args.IsCommandStart(address, path, port, ecowitt, log, daemon, text)) {
-    cout << text.str() << endl;
+    nanolog::set_log_level((nanolog::LogLevel)log);
+
+    //
+    // start
+    //
 
     return (EXIT_SUCCESS);
   }
 
   if (args.IsCommandTrace(ecowitt, log, text)) {
-    cout << text.str() << endl;
+    nanolog::set_log_level((nanolog::LogLevel)log);   
+
+    //
+    // trace
+    //
 
     return (EXIT_SUCCESS);
   }
 
   if (args.IsCommandStop(text)) {
-    cout << text.str() << endl;
+
+    //
+    // stop
+    //
 
     return (EXIT_SUCCESS);
   }

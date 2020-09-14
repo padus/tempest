@@ -1,9 +1,10 @@
 #
 # App:         WeatherFlow Tempest UDP Relay 
 # Author:      Mirco Caramori
+# Copyright:   (c) 2020 Mirco Caramori
 # Repository:  https://github.com/mircolino/tempest
 #
-# Description: application building
+# Description: application builder
 #
 # Usage:       make release (or just make)      build distribuition bin/tempest
 #              make debug                       build development version bin/tempestd
@@ -25,10 +26,11 @@ HPP := $(call rwildcard,$(SRC)/,*.hpp)
 CPP := $(call rwildcard,$(SRC)/,*.cpp)
 PCH := $(TMP)/system.hpp.gch
 OBJ := $(CPP:$(SRC)/%.cpp=$(TMP)/%.o)
+LIB := -lstdc++fs
 EXE := $(BIN)/tempest
 
-CXX_RELEASE := g++ -std=c++17 -I$(SRC) -DTEMPEST_RELEASE -O3
-CXX_DEBUG := g++ -std=c++17 -I$(TMP) -I$(SRC) -DTEMPEST_DEBUG -ggdb
+CXX_RELEASE := g++ -std=c++17 -pthread -I$(SRC) -DTEMPEST_RELEASE -O3
+CXX_DEBUG := g++ -std=c++17 -pthread -I$(TMP) -I$(SRC) -DTEMPEST_DEBUG -ggdb
 
 # Dependencies & Tasks
 
@@ -39,12 +41,12 @@ all: release
 release: $(EXE)
 
 $(EXE): $(CPP) $(HPP)
-	$(CXX_RELEASE) $(CPP) -o $@ 
+	$(CXX_RELEASE) $(CPP) $(LIB) -o $@
 
 debug: $(EXE)d
 
 $(EXE)d: $(OBJ)
-	$(CXX_DEBUG) $(OBJ) -o $@ 
+	$(CXX_DEBUG) $(OBJ) $(LIB) -o $@ 
 
 $(TMP)/%.o: $(SRC)/%.cpp $(HPP) $(PCH)
 	$(CXX_DEBUG) -c $< -o $@

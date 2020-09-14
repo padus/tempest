@@ -1,6 +1,7 @@
 #
 # App:         WeatherFlow Tempest UDP Relay 
 # Author:      Mirco Caramori
+# Copyright:   (c) 2020 Mirco Caramori
 # Repository:  https://github.com/mircolino/tempest
 #
 # Description: project editing enforcement
@@ -22,3 +23,7 @@ indent_size = 2
 
 [makefile]
 indent_style = tab
+
+[log.?pp]
+indent_style = tab
+indent_size = 8

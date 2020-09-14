@@ -1,6 +1,7 @@
 //
 // App:         WeatherFlow Tempest UDP Relay 
 // Author:      Mirco Caramori
+// Copyright:   (c) 2020 Mirco Caramori
 // Repository:  https://github.com/mircolino/tempest
 //
 // Description: class to handle command line arguments and options
@@ -67,10 +68,10 @@ public:
 
   static void PrintCommandLine(int argc, char* const argv[], ostringstream& text) {
     //
-    // print raw command line
+    // print original command line
     //
-    text.str("");
-    for (int idx = 0; idx < argc; idx++) text << idx << " [" << argv[idx] << "]" << endl;
+    text.str(argv[0]);
+    for (int idx = 1; idx < argc; idx++) text << " " << argv[idx];
   }
 
   static void PrintUsage(ostringstream& text) {
@@ -237,7 +238,7 @@ public:
     path = path_.empty()? "/data": path_;
     port = !port_? 39501: port_;
     ecowitt = ecowitt_;
-    log = !log_? 3: log_;
+    log = !log_? 2: log_;
     daemon = daemon_;
 
     text.str("");
@@ -258,7 +259,7 @@ public:
     if (IsCommandLineInvalid() || !terminal_) return (false);
     
     ecowitt = ecowitt_;
-    log = !log_? 3: log_;
+    log = !log_? 2: log_;
     
     text.str("");
     text << "tempest --terminal";
@@ -327,10 +328,10 @@ const char* Arguments::usage_[] = {
   "-e | --ecowitt[=<secs>] repackage JSON data into Ecowitt format and",
   "                        relay it at specified intervals (valid range:",
   "                        60 <= secs <= 3600, default if omitted: 300)",
-  "-l | --log=<level>      1) only errors",
-  "                        2) errors and warnings",
-  "                        3) errors, warnings and info (default if omitted)",
-  "                        4) errors, warnings, info and debug (everything)",
+  "-l | --log=<level>      1) errors, warnings, info and debug (everything)",
+  "                        2) errors, warnings and info (default if omitted)",
+  "                        3) errors and warnings",
+  "                        4) only errors",
   "-d | --daemon           run as a service",
   "-t | --terminal         relay data to the terminal standard output",
   "-s | --stop             stop the relay and exit gracefully", 
