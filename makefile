@@ -26,7 +26,7 @@ HPP := $(call rwildcard,$(SRC)/,*.hpp)
 CPP := $(call rwildcard,$(SRC)/,*.cpp)
 PCH := $(TMP)/system.hpp.gch
 OBJ := $(CPP:$(SRC)/%.cpp=$(TMP)/%.o)
-LIB := -lstdc++fs
+LIB := -lstdc++fs -lcurl
 EXE := $(BIN)/tempest
 
 CXX_RELEASE := g++ -std=c++17 -pthread -I$(SRC) -DTEMPEST_RELEASE -O3

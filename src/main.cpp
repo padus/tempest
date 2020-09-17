@@ -13,9 +13,12 @@
 #include <system.hpp>
 #endif
 
-#include "log.hpp"
 #include "version.hpp"
 #include "arguments.hpp"
+#include "relay.hpp"
+#include "receiver.hpp"
+#include "transmitter.hpp"
+#include "tracer.hpp"
 
 // Source ---------------------------------------------------------------------------------------------------------------------
 
@@ -23,6 +26,14 @@ using namespace std;
 using namespace tempest;
 
 int main(int argc, char* const argv[]) {
+
+  int err = EXIT_SUCCESS;
+  ostringstream text;
+
+  string url;
+  int ecowitt;
+  int log;
+  bool daemon;
 
   // normalize application path and deduce log filename from it 
   namespace fs = std::filesystem;
@@ -33,74 +44,94 @@ int main(int argc, char* const argv[]) {
   nanolog::initialize(nanolog::GuaranteedLogger(), log_name.string(), 8);
 
   // process command line
-  string address;
-  string path;
-  int port;
-  int ecowitt;
-  int log;
-  bool daemon;
-
-  ostringstream text;
+  Arguments::PrintCommandLine(argc, argv, text);
+  LOG_INFO << "Application started (command line: \"" << text.str() << "\").";
 
   Arguments args = Arguments(argc, argv);
 
   if (args.IsCommandLineInvalid()) {
-    // print error (to standard output)
-    cout << "Invalid command line." << endl << endl;
+    //
+    // invalid comman line
+    //    
+
+    // log and print error
+    text.str("Invalid command line.");
+    LOG_ERROR << text.str();
+    cout << text.str() << endl;
+    
+    // print usage
     args.PrintUsage(text);
-    cout << text.str();
+    cout << endl << text.str();
 
-    // log error
-    Arguments::PrintCommandLine(argc, argv, text);
-    LOG_ERROR << "Command line \"" << text.str() << "\" is invalid.";
-
-    return (EXIT_FAILURE);
+    err = EXIT_FAILURE;
   }
-
-  if (args.IsCommandStart(address, path, port, ecowitt, log, daemon, text)) {
-    nanolog::set_log_level((nanolog::LogLevel)log);
-
+  else if (args.IsCommandStart(url, ecowitt, log, daemon, text)) {
     //
     // start
     //
 
-    return (EXIT_SUCCESS);
+    nanolog::set_log_level((nanolog::LogLevel)log);
+
+    Relay context = Relay(url, ecowitt);
+
+    future<int> fut = async(launch::async, main_receiver, &context);
+    err = main_transmitter(&context);
+    int err_async = fut.get();  
+    if (err == EXIT_SUCCESS) err = err_async;
   }
-
-  if (args.IsCommandTrace(ecowitt, log, text)) {
-    nanolog::set_log_level((nanolog::LogLevel)log);   
-
+  else if (args.IsCommandTrace(ecowitt, log, text)) {
     //
     // trace
     //
 
-    return (EXIT_SUCCESS);
+    nanolog::set_log_level((nanolog::LogLevel)log);   
+
+    Relay context = Relay(ecowitt);
+
+    future<int> fut = async(launch::async, main_receiver, &context);
+    err = main_tracer(&context);
+    int err_async = fut.get();  
+    if (err == EXIT_SUCCESS) err = err_async;
   }
-
-  if (args.IsCommandStop(text)) {
-
+  else if (args.IsCommandStop(text)) {
     //
     // stop
     //
 
-    return (EXIT_SUCCESS);
+    // <TBD> @mircolino
   }
+  else if (args.IsCommandVersion(text)) {
+    //
+    // version
+    //
 
-  if (args.IsCommandVersion(text)) {
     cout << Version::getSemantic() << endl;
-    
-    return (EXIT_SUCCESS);
   }
+  else if (args.IsCommandHelp(text)) {
+    //
+    // help
+    //    
 
-  if (args.IsCommandHelp(text)) {
     args.PrintUsage(text);
     cout << text.str();
+  }
+  else {
+    //
+    // we should never be here
+    //
 
-    return (EXIT_SUCCESS);
+    text.str("Unknown error processing command line.");
+    LOG_ERROR << text.str();
+    cout << text.str() << endl;
+
+    err = EXIT_FAILURE;
   }
 
-  // We should never get here
-  return (EXIT_FAILURE);
+  text.str("Application ended");
+  if (err) LOG_ERROR << text.str() << " with error " << err << ".";
+  else LOG_INFO << text.str() << ".";
+
+  return (err);
 }
 
 // Recycle Bin ----------------------------------------------------------------------------------------------------------------

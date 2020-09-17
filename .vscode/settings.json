@@ -51,6 +51,7 @@
     "map": "cpp",
     "ratio": "cpp",
     "regex": "cpp",
-    "thread": "cpp"
+    "thread": "cpp",
+    "condition_variable": "cpp"
   }
 }

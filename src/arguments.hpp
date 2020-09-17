@@ -28,9 +28,7 @@ private:
   static const char* usage_[];                                 // see initialization below
   static const struct option option_[];                        // see initialization below 
 
-  string address_;
-  string path_;
-  int port_;
+  string url_;
   int ecowitt_;
   int log_;
   bool daemon_;
@@ -91,9 +89,7 @@ public:
     //
 
     // initialize options to "non-present" state
-    address_ = "";
-    path_ = "";
-    port_ = 0;
+    url_ = "";
     ecowitt_ = 0;
     log_ = 0;
     daemon_ = false;
@@ -118,20 +114,9 @@ public:
         arg = Trim(optarg);
 
         switch (value) {
-          case 'a':
+          case 'u':
             if (arg.empty()) throw invalid_argument(arg);
-            address_ = arg;
-            break;
-
-          case 'x':
-            if (arg.empty()) throw invalid_argument(arg);
-            else path_ = arg;
-            break;
-
-          case 'p':
-            num = stoi(arg);
-            if (num < 1 || num > 65353) throw out_of_range(arg);
-            port_ = num;
+            url_ = arg;
             break;
 
           case 'e':
@@ -177,11 +162,9 @@ public:
       //
       // check command line semantics
       //
-      if (!address_.empty()) {
+      if (!url_.empty()) {
         // start command
         num = 1;
-        if (!path_.empty()) num++;
-        if (port_) num++;
         if (ecowitt_) num++;
         if (log_) num++;
         if (daemon_) num++;
@@ -231,23 +214,19 @@ public:
     return (opts_ == 0);
   }
 
-  bool IsCommandStart(string& address, string& path, int& port, int& ecowitt, int& log, bool& daemon, ostringstream& text) const {
+  bool IsCommandStart(string& url, int& ecowitt, int& log, bool& daemon, ostringstream& text) const {
     //
     // Return whether the start command was invoked and all its parameters 
     //
-    if (IsCommandLineInvalid() || address_.empty()) return (false);
+    if (IsCommandLineInvalid() || url_.empty()) return (false);
     
-    address = address_;
-    path = path_.empty()? "/data": path_;
-    port = !port_? 39501: port_;
+    url = url_;
     ecowitt = ecowitt_;
     log = !log_? 2: log_;
     daemon = daemon_;
 
     text.str("");
-    text << "tempest --address=" << address;
-    text << " --path=" << path;
-    text << " --port=" << port;
+    text << "tempest --url=" << url;
     if (ecowitt) text << " --ecowitt=" << ecowitt;
     text << " --log=" << log;
     if (daemon) text << " --daemon";
@@ -316,8 +295,7 @@ const char* Arguments::usage_[] = {
   "",
   "Commands:",
   "",    
-  "Start:          tempest --address=<host> [--path=<path>] [--port=<port>]",
-  "                        [--ecowitt[=<secs>]] [--log=<level>] [--daemon]",
+  "Start:          tempest --url=<url> [--ecowitt[=<secs>]] [--log=<level>] [--daemon]",
   "Trace:          tempest --terminal [--ecowitt[=<secs>]] [--log=<level>]",
   "Stop:           tempest --stop",
   "Version:        tempest --version",
@@ -325,9 +303,7 @@ const char* Arguments::usage_[] = {
   "",
   "Options:",
   "",
-  "-a | --address=<host>   host name or IP to relay data to",
-  "-x | --path=<path>      host path (default if omitted: /data)",
-  "-p | --port=<port>      host port (default if omitted: 39501)",
+  "-u | --url=<url>        full URL to relay data to",
   "-e | --ecowitt[=<secs>] repackage JSON data into Ecowitt format and",
   "                        relay it at specified intervals (valid range:",
   "                        60 <= secs <= 3600, default if omitted: 300)",
@@ -343,16 +319,14 @@ const char* Arguments::usage_[] = {
   "",
   "Examples:",
   "",
-  "tempest --address=hubitat.local --ecowitt --daemon",
-  "tempest -a=192.168.1.100 -x=/json -p=8080",
+  "tempest --url=http://hubitat.local:39501 --ecowitt --daemon",
+  "tempest -u=192.168.1.100:39500",
   "tempest --stop",
   nullptr
 };
 
 const struct option Arguments::option_[] = {
-  {"address",  required_argument, 0, 'a'},
-  {"path",     required_argument, 0, 'x'},
-  {"port",     required_argument, 0, 'p'},
+  {"url",      required_argument, 0, 'u'},
   {"ecowitt",  optional_argument, 0, 'e'},
   {"log",      required_argument, 0, 'l'},
   {"daemon",   no_argument,       0, 'd'},   

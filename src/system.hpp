@@ -31,12 +31,27 @@
 #include <tuple>
 #include <atomic>
 #include <queue>
+#include <future>   
+#include <mutex>
+#include <condition_variable>
 
 #include <memory>
 #include <iosfwd>
 #include <type_traits>
 
 #include <getopt.h>
+
+#include <sys/types.h> 
+#include <sys/socket.h> 
+#include <arpa/inet.h> 
+#include <netinet/in.h>
+#include <unistd.h> 
+
+// External libraries
+
+#include <curl/curl.h>
+#include "log.hpp"
+#include "json.hpp"
 
 // Recycle Bin ----------------------------------------------------------------------------------------------------------------
 
