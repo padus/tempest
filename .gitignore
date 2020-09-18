@@ -7,7 +7,7 @@
 # Description: instruct git to ignore files and directories that should not be save in the repository
 #
 
-/bin/
-/temp/
+/build/
+/bin/*.log
 
 **/desktop.ini

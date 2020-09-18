@@ -9,3 +9,4 @@
 
 1) rewrite my own simplier logger
 2) demonize
+3) makerAPI interface

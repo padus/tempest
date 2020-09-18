@@ -8,7 +8,7 @@
       "name": "(gdb) Launch",
       "type": "cppdbg",
       "request": "launch",
-      "program": "${workspaceFolder}/bin/tempestd",
+      "program": "${workspaceFolder}/build/tempestd",
       "args": ["--url=http://hubitat.padus.com:39501"],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",

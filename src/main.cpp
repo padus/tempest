@@ -18,7 +18,6 @@
 #include "relay.hpp"
 #include "receiver.hpp"
 #include "transmitter.hpp"
-#include "tracer.hpp"
 
 // Source ---------------------------------------------------------------------------------------------------------------------
 
@@ -65,40 +64,33 @@ int main(int argc, char* const argv[]) {
 
     err = EXIT_FAILURE;
   }
-  else if (args.IsCommandStart(url, ecowitt, log, daemon, text)) {
+  else if (args.IsCommandStart(url, ecowitt, log, daemon, text) || args.IsCommandTrace(ecowitt, log, text)) {
     //
-    // start
+    // start trasmitting or tracing (if url is empty)
     //
 
     nanolog::set_log_level((nanolog::LogLevel)log);
 
+    if (daemon) {
+      //
+      // daemonize process 
+      // <TBD> @mircolino
+      // 
+    }
+
     Relay context = Relay(url, ecowitt);
 
-    future<int> fut = async(launch::async, main_receiver, &context);
-    err = main_transmitter(&context);
-    int err_async = fut.get();  
-    if (err == EXIT_SUCCESS) err = err_async;
-  }
-  else if (args.IsCommandTrace(ecowitt, log, text)) {
-    //
-    // trace
-    //
-
-    nanolog::set_log_level((nanolog::LogLevel)log);   
-
-    Relay context = Relay(ecowitt);
-
-    future<int> fut = async(launch::async, main_receiver, &context);
-    err = main_tracer(&context);
-    int err_async = fut.get();  
-    if (err == EXIT_SUCCESS) err = err_async;
+    future<int> rx = async(launch::async, main_receiver, &context);
+    future<int> tx = async(launch::async, main_transmitter, &context);
+    int err_rx = rx.get();  
+    int err_tx = tx.get();  
+    if (err == EXIT_SUCCESS) err = (err_rx != EXIT_SUCCESS)? err_rx: err_tx;
   }
   else if (args.IsCommandStop(text)) {
     //
-    // stop
-    //
-
+    // stop process gracefully <TBD> @mircolino
     // <TBD> @mircolino
+    //
   }
   else if (args.IsCommandVersion(text)) {
     //

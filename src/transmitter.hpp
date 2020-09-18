@@ -33,16 +33,12 @@ int main_transmitter(void * context) {
     LOG_INFO << "Trasmitter started.";  
 
     string text;
+    Relay::State stat;
 
-    while (true) {
+    while ((stat = relay.PopString(text)) != Relay::State::ERROR) {
 
-      if (relay.PopString(text)) {
-        cout << text << endl;
-        continue;
-      }
-      
-      // timeout on empty queue
-      if (relay.HasReceiverEnded()) break;
+      if (stat == Relay::State::OK) cout << text << endl;
+
     }
   }
   catch (exception const & ex) {

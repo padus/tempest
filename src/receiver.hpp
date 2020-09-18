@@ -33,16 +33,17 @@ int main_receiver(void * context) {
     LOG_INFO << "Receiver started.";  
 
     ostringstream text;
+    int idx = 0;
 
-    for (int idx = 0; idx < 10; idx++) {
+    do {
 
-      if (relay.HasTrasmitterEnded()) break;
+      if (idx == 20) break;
 
       text.str("");
-      text << "string number: " << idx;
+      text << "string number: " << idx++;
 
-      relay.PushString(text.str().c_str());
     }
+    while (relay.PushString(text.str().c_str()) != Relay::State::ERROR);
 
   }
   catch (exception const & ex) {

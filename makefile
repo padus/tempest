@@ -20,17 +20,17 @@ rwildcard = $(wildcard $1$2)$(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2)
 
 SRC := src
 BIN := bin
-TMP := temp
+BLD := build
 
 HPP := $(call rwildcard,$(SRC)/,*.hpp)
 CPP := $(call rwildcard,$(SRC)/,*.cpp)
-PCH := $(TMP)/system.hpp.gch
-OBJ := $(CPP:$(SRC)/%.cpp=$(TMP)/%.o)
+PCH := $(BLD)/system.hpp.gch
+OBJ := $(CPP:$(SRC)/%.cpp=$(BLD)/%.o)
 LIB := -lstdc++fs -lcurl
-EXE := $(BIN)/tempest
+EXE := $(BLD)/tempest
 
 CXX_RELEASE := g++ -std=c++17 -pthread -I$(SRC) -DTEMPEST_RELEASE -O3
-CXX_DEBUG := g++ -std=c++17 -pthread -I$(TMP) -I$(SRC) -DTEMPEST_DEBUG -ggdb
+CXX_DEBUG := g++ -std=c++17 -pthread -I$(BLD) -I$(SRC) -DTEMPEST_DEBUG -ggdb
 
 # Dependencies & Tasks
 
@@ -42,23 +42,24 @@ release: $(EXE)
 
 $(EXE): $(CPP) $(HPP)
 	$(CXX_RELEASE) $(CPP) $(LIB) -o $@
+	cp -f $(EXE) $(BIN)/
 
 debug: $(EXE)d
 
 $(EXE)d: $(OBJ)
 	$(CXX_DEBUG) $(OBJ) $(LIB) -o $@ 
 
-$(TMP)/%.o: $(SRC)/%.cpp $(HPP) $(PCH)
+$(BLD)/%.o: $(SRC)/%.cpp $(HPP) $(PCH)
 	$(CXX_DEBUG) -c $< -o $@
 
-$(TMP)/%.hpp.gch: $(SRC)/%.hpp
+$(BLD)/%.hpp.gch: $(SRC)/%.hpp
 	$(CXX_DEBUG) -x c++-header $< -o $@
 	
 clean:
-	$(RM) $(BIN)/** $(TMP)/**								
+	rm -fr $(BLD)/*
 
 tree:
-	mkdir $(BIN) $(TMP)
+	mkdir -p $(BLD)
 
 info:
 	$(info $(HPP))
