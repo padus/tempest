@@ -13,13 +13,12 @@
 #include <system.hpp>
 #endif
 
-#include "version.hpp"
 #include "arguments.hpp"
 #include "relay.hpp"
-#include "receiver.hpp"
-#include "transmitter.hpp"
 
 // Source ---------------------------------------------------------------------------------------------------------------------
+
+#define TEMPEST_VERSION         "v0.1.1-alpha"
 
 using namespace std;
 using namespace tempest;
@@ -78,10 +77,16 @@ int main(int argc, char* const argv[]) {
       // 
     }
 
-    Relay context = Relay(url, ecowitt);
+    Relay relay{url, ecowitt};
 
-    future<int> rx = async(launch::async, main_receiver, &context);
-    future<int> tx = async(launch::async, main_transmitter, &context);
+    future<int> rx = async(launch::async, &Relay::Receiver, &relay);
+    future<int> tx = async(launch::async, &Relay::Transmitter, &relay);
+
+    //
+    // Main thread should handle signals here
+    // <TBD> @mircolino
+    //
+
     int err_rx = rx.get();  
     int err_tx = tx.get();  
     if (err == EXIT_SUCCESS) err = (err_rx != EXIT_SUCCESS)? err_rx: err_tx;
@@ -97,7 +102,7 @@ int main(int argc, char* const argv[]) {
     // version
     //
 
-    cout << Version::getSemantic() << endl;
+    cout << TEMPEST_VERSION << endl;
   }
   else if (args.IsCommandHelp(text)) {
     //
