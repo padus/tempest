@@ -14,6 +14,7 @@
 #endif
 
 #include "arguments.hpp"
+#include "queue.hpp"
 #include "relay.hpp"
 
 // Source ---------------------------------------------------------------------------------------------------------------------
@@ -29,9 +30,11 @@ int main(int argc, char* const argv[]) {
   ostringstream text;
 
   string url;
-  int ecowitt;
-  int log;
-  bool daemon;
+  Arguments::DataFormat format;
+  int interval;
+  nanolog::LogLevel log;
+  
+  bool daemon = false;
 
   // normalize application path and deduce log filename from it 
   namespace fs = std::filesystem;
@@ -39,7 +42,7 @@ int main(int argc, char* const argv[]) {
   fs::path log_name = app_name.replace_extension(".log");
 
   // initialize logger
-  nanolog::initialize(nanolog::GuaranteedLogger(), log_name.string(), 8);
+  nanolog::initialize(nanolog::GuaranteedLogger(), log_name.string(), 1);
 
   // process command line
   Arguments::PrintCommandLine(argc, argv, text);
@@ -63,12 +66,12 @@ int main(int argc, char* const argv[]) {
 
     err = EXIT_FAILURE;
   }
-  else if (args.IsCommandStart(url, ecowitt, log, daemon, text) || args.IsCommandTrace(ecowitt, log, text)) {
+  else if (args.IsCommandStart(url, format, interval, log, daemon, text) || args.IsCommandTrace(format, interval, log, text)) {
     //
     // start trasmitting or tracing (if url is empty)
     //
 
-    nanolog::set_log_level((nanolog::LogLevel)log);
+    nanolog::set_log_level(log);
 
     if (daemon) {
       //
@@ -77,7 +80,7 @@ int main(int argc, char* const argv[]) {
       // 
     }
 
-    Relay relay{url, ecowitt};
+    Relay relay{url, format, interval};
 
     future<int> rx = async(launch::async, &Relay::Receiver, &relay);
     future<int> tx = async(launch::async, &Relay::Transmitter, &relay);

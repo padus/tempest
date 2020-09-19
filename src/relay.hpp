@@ -16,116 +16,82 @@
 #include <system.hpp>
 #endif
 
+#include "queue.hpp"
+
 // Source ---------------------------------------------------------------------------------------------------------------------
 
 namespace tempest {
 
 using namespace std;
 
-class Relay {
+class Relay: Queue {
 private:
-  const string url_;
-  const int ecowitt_;
-  const int queue_max_;
+  const int buffer_max_;
 
-  condition_variable queue_empty_;
-  mutex queue_access_;
-  queue<string> queue_;
-  bool queue_writer_alive_{true};
-  bool queue_reader_alive_{true};
+  const int port_;
+  const string url_;
+  const Arguments::DataFormat format_;
+  const int interval_;
 
 public:
-  const string& GetUrl() { return (url_); }
-  bool GetEcowitt() { return (ecowitt_ > 0); }
-  int GetInterval() { return (ecowitt_); }
 
-  Relay(const string& url, int ecowitt, int queue_max = 128): url_{url}, ecowitt_{ecowitt}, queue_max_{queue_max} {}
-
-  void ReceiverEnded(void) {
-    scoped_lock<mutex> lock{queue_access_};
-
-    queue_writer_alive_ = false;
-
-    // if the trasmitter is waiting on an empty queue we wakeup it up since it's not going to get anything new
-    queue_empty_.notify_one(); 
-  }
-
-  inline bool HasReceiverEnded(void) { return (!queue_writer_alive_); }
-
-  void TrasmitterEnded(void) { 
-    scoped_lock<mutex> lock{queue_access_};
-
-    queue_reader_alive_ = false;
-  }
-
-  inline bool HasTrasmitterEnded(void) { return (!queue_reader_alive_); }
-
-  enum State {
-    ERROR = -1,
-    OK = 0,  
-    RETRY = 1
-  };
-
-  State PushString(const char * str) {
-    scoped_lock<mutex> lock{queue_access_};
-
-    // if the trasmitter is dead, there's no point filling the queue
-    if (HasTrasmitterEnded()) return (State::ERROR);
-
-    // if the queue is full we discard the oldest element
-    if (queue_.size() == queue_max_) queue_.pop();
-
-    // if the queue was empty we wakeup the transmitter
-    if (queue_.size() == 0) queue_empty_.notify_one();
-
-    queue_.emplace(str);
-
-    return (State::OK);
-  }
-
-  State PopString(string& str, int wait_seconds_if_empty = 1) {
-    unique_lock<mutex> lock{queue_access_};
-
-    // queue is empty: we quit if...
-    if (queue_.size() == 0) {
-
-      // the receiver is dead
-      if (HasReceiverEnded()) return (State::ERROR);
-
-      // the wait ends with a timeout 
-      if (queue_empty_.wait_for(lock, chrono::seconds(wait_seconds_if_empty)) == cv_status::timeout) return (State::RETRY);
-
-      // we have a spurious wakeup
-      if (queue_.size() == 0) return (State::RETRY);
-    }
-
-    str = queue_.front();
-    queue_.pop();
-
-    return (State::OK);
-  }
+  Relay(const string& url, Arguments::DataFormat format, int interval, int port = 50222, int buffer_max = 1024, int queue_max = 128):
+    Queue(queue_max), url_{url}, format_{format}, interval_{interval}, port_{port}, buffer_max_{buffer_max} {}
 
   int Receiver() {
     int err = EXIT_SUCCESS;
+    int sock = -1;
 
     try {
       LOG_INFO << "Receiver started.";  
 
-      string text;
+      // create a best-effort datagram socket using UDP
+      if ((sock = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) {
+        LOG_ERROR << "socket() failed: " << strerror(errno) << ".";
+        throw runtime_error("socket()");
+      }
+
+      // construct bind structure and bind to the broadcast port
+      struct sockaddr_in broadcast_addr;                        // broadcast address
+      memset(&broadcast_addr, 0, sizeof(broadcast_addr));       // zero out structure
+      broadcast_addr.sin_family = AF_INET;                      // internet address family
+      broadcast_addr.sin_addr.s_addr = htonl(INADDR_ANY);       // any incoming interface
+      broadcast_addr.sin_port = htons(port_);                   // broadcast port
+
+      if (bind(sock, (const struct sockaddr *) &broadcast_addr, sizeof(broadcast_addr)) == -1) {
+        LOG_ERROR << "bind() failed: " << strerror(errno) << ".";
+        throw runtime_error("bind()");        
+      }
+
+      // receive a single datagram from the server
+      struct sockaddr_in receive_addr;
+      socklen_t receive_addr_len = sizeof(receive_addr);
+      char receive_buffer[buffer_max_];                         // buffer for received data
+      int receive_len;                                          // length of received data
 
       do {
 
+        if ((receive_len = recvfrom(sock, receive_buffer, sizeof(receive_buffer) - 1, 0, (struct sockaddr *) &receive_addr, &receive_addr_len)) == -1) {
+          LOG_ERROR << "recvfrom() failed: " << strerror(errno) << ".";
+          throw runtime_error("recvfrom()");        
+        }
+        
+        if (receive_len < 0 || receive_len >= sizeof(receive_buffer)) {
+          LOG_ERROR << "recvfrom() returned: " << receive_len << " bytes.";
+          throw runtime_error("recvfrom()");                 
+        }
 
-
+        receive_buffer[receive_len] = '\0';
       }
-      while (PushString(text.c_str()) != Relay::State::ERROR);
-
+      while (Push(receive_buffer) != Relay::State::EXIT);
     }
     catch (exception const & ex) {
       err = EXIT_FAILURE;
     }
 
-    ReceiverEnded();
+    if (sock != -1) close(sock);
+
+    WriterEnded();
 
     return (err);
   }
@@ -141,7 +107,7 @@ public:
       string text;
       State stat;
 
-      while ((stat = PopString(text)) != Relay::State::ERROR) {
+      while ((stat = Pop(text)) != Relay::State::EXIT) {
 
         if (stat == Relay::State::OK) cout << text << endl;
 
@@ -151,7 +117,7 @@ public:
       err = EXIT_FAILURE;
     }
 
-    TrasmitterEnded();
+    ReaderEnded();
 
     return (err);
   }
@@ -167,8 +133,6 @@ public:
   // Receiver
   //
 
-  #define RECEIVER_MAX_BUFFER     1024                            // max data to receive
-  #define RECEIVER_PORT           50222                           // port we receive data from
 
   // create a best-effort datagram socket using UDP
   int sock;                                                     // socket
