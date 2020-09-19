@@ -66,6 +66,26 @@ A fast and efficient UDP relay service designed to receive WeatherFlow Tempest l
   tempest --stop
   ```
 
+## Note to Developers
+
+This application has been developed on a Windows 10 system with Visual Studio Code connected to a WSL2 instance running vanilla Debian 10.5 with the following development packages installed:
+
+  ```text
+  sudo apt install build-essential gdb git libcurl4-openssl-dev
+  ```
+
+To build your own executable from source, clone the repository and run one of the following:
+
+  ```text
+  make release
+  ```
+
+or
+
+  ```text
+  make debug
+  ```
+
 ***
 
 ## Disclaimer
