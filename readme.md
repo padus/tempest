@@ -2,7 +2,7 @@
 
 A fast and efficient UDP relay service designed to receive WeatherFlow Tempest locally broadcasted [UDP JSON data](https://weatherflow.github.io/SmartWeather/api/udp/v143/), optionally repackage it into the Ecowitt format, and then POST it to Hubitat for consuption.
 
-![Relay Diagram](https://github.com/mircolino/tempest/raw/master/images/diagram.jpg "Relay Diagram")
+![Image](https://github.com/mircolino/tempest/raw/master/images/diagram.jpg "Relay Diagram")
 
 ## Features
 

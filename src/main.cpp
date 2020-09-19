@@ -89,7 +89,7 @@ int main(int argc, char* const argv[]) {
     // Main thread should handle signals here
     // <TBD> @mircolino
     //
-    this_thread::sleep_for(chrono::seconds(30));
+    this_thread::sleep_for(chrono::seconds(300));
     relay.Stop();
 
     int err_rx = rx.get();  
