@@ -1,8 +1,7 @@
 # WeatherFlow Tempest UDP Relay
 
-A fast and efficient UDP relay service designed to receive WeatherFlow Tempest locally broadcasted [UDP JSON data](https://weatherflow.github.io/SmartWeather/api/udp/v143/), optionally repackage it into Ecowitt format, and then POST it to Hubitat for consuption.
+A fast and efficient UDP relay service designed to receive WeatherFlow Tempest locally broadcasted [UDP JSON data](https://weatherflow.github.io/SmartWeather/api/udp/v143/), optionally repackage it into the Ecowitt format, and then POST it to Hubitat for consuption.
 
-Inline-style:
 ![Relay Diagram](https://github.com/mircolino/tempest/raw/master/images/diagram.jpg "Relay Diagram")
 
 ## Features
@@ -14,45 +13,58 @@ Inline-style:
 
 ## Installation Instructions
 
-Just copy the single tempest executable to your host (PC, VM, RPi etc.) and run it with the appropriate arguments:
+- Copy the single "tempest" executable to your host (PC, VM, RPi etc.)
+- Make sure the file is executable. If you are using Linux run the following command:
 
-```text
-Usage:        tempest [OPTIONS]
+  ```text
+  chmod +x tempest
+  ```
 
-Commands:
+- If the host running the relay has a firewall, don't forget to open incoming UPD 50222 port. If, for example, you are using UFW firewall, you can use the following command:
 
-Start:        tempest --url=<url> [--format=<fmt>] [--interval=<min>]
-                      [--log=<lev>] [--daemon]
-Trace:        tempest --trace [--format=<fmt>] [--interval=<min>]
-                      [--log=<lev>]
-Stop:         tempest --stop
-Version:      tempest --version
-Help:         tempest [--help]
+  ```text
+  sudo ufw allow 50222/udp
+  ```
 
-Options:
+- Run the executable with the appropriate arguments:
 
--u | --url=<url>      full URL to relay data to
--f | --format=<fmt>   format to which the UDP data is repackaged:
-                      0) JSON untranslated, 1) REST API, 2) Ecowitt
-                      (default if omitted: 1)
--i | --interval=<min> interval in minutes at which data is relayed:
-                      0 <= min <= 30 (default if omitted: 1)
--l | --log=<lev>      0) only errors
-                      1) errors and warnings
-                      2) errors, warnings and info (default if omitted)
-                      3) errors, warnings, info and debug (everything)
--d | --daemon         run as a service
--t | --trace          relay data to the terminal standard output
--s | --stop           stop the relay and exit gracefully
--v | --version        print version information
--h | --help           print this help
+  ```text
+  Usage:        tempest [OPTIONS]
 
-Examples:
+  Commands:
 
-tempest --url=http://hubitat.local:39501 --format=2 --interval=5
-tempest -u=192.168.1.100:39500 -l=1 -d
-tempest --stop
-```
+  Start:        tempest --url=<url> [--format=<fmt>] [--interval=<min>]
+                        [--log=<lev>] [--daemon]
+  Trace:        tempest --trace [--format=<fmt>] [--interval=<min>]
+                        [--log=<lev>]
+  Stop:         tempest --stop
+  Version:      tempest --version
+  Help:         tempest [--help]
+
+  Options:
+
+  -u | --url=<url>      full URL to relay data to
+  -f | --format=<fmt>   format to which the UDP data is repackaged:
+                        0) JSON untranslated, 1) REST API, 2) Ecowitt
+                        (default if omitted: 1)
+  -i | --interval=<min> interval in minutes at which data is relayed:
+                        0 <= min <= 30 (default if omitted: 1)
+  -l | --log=<lev>      0) only errors
+                        1) errors and warnings
+                        2) errors, warnings and info (default if omitted)
+                        3) errors, warnings, info and debug (everything)
+  -d | --daemon         run as a service
+  -t | --trace          relay data to the terminal standard output
+  -s | --stop           stop the relay and exit gracefully
+  -v | --version        print version information
+  -h | --help           print this help
+
+  Examples:
+
+  tempest --url=http://hubitat.local:39501 --format=2 --interval=5
+  tempest -u=192.168.1.100:39500 -l=1 -d
+  tempest --stop
+  ```
 
 ***
 
