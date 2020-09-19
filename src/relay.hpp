@@ -27,7 +27,7 @@ using namespace std;
 class Relay: Queue {
 private:
   const int buffer_max_;
-
+  const int io_timeout_;
   const int port_;
   const string url_;
   const Arguments::DataFormat format_;
@@ -35,8 +35,13 @@ private:
 
 public:
 
-  Relay(const string& url, Arguments::DataFormat format, int interval, int port = 50222, int buffer_max = 1024, int queue_max = 128):
-    Queue(queue_max), url_{url}, format_{format}, interval_{interval}, port_{port}, buffer_max_{buffer_max} {}
+  Relay(const string& url, Arguments::DataFormat format, int interval, int port = 50222, int buffer_max = 1024, int queue_max = 128, int io_timeout = 1):
+    Queue(queue_max), url_{url}, format_{format}, interval_{interval}, port_{port}, buffer_max_{buffer_max}, io_timeout_{io_timeout} {}
+
+  void Stop() {
+    ReaderEnded();
+    WriterEnded();
+  }
 
   int Receiver() {
     int err = EXIT_SUCCESS;
@@ -69,16 +74,35 @@ public:
       char receive_buffer[buffer_max_];                         // buffer for received data
       int receive_len;                                          // length of received data
 
-      do {
+      struct timeval receive_to;
+      receive_to.tv_sec = io_timeout_;
+      receive_to.tv_usec = 0;
+      fd_set receive_fds;
 
-        if ((receive_len = recvfrom(sock, receive_buffer, sizeof(receive_buffer) - 1, 0, (struct sockaddr *) &receive_addr, &receive_addr_len)) == -1) {
-          LOG_ERROR << "recvfrom() failed: " << strerror(errno) << ".";
-          throw runtime_error("recvfrom()");        
-        }
-        
-        if (receive_len < 0 || receive_len >= sizeof(receive_buffer)) {
-          LOG_ERROR << "recvfrom() returned: " << receive_len << " bytes.";
-          throw runtime_error("recvfrom()");                 
+      do {
+        FD_ZERO(&receive_fds);
+        FD_SET(sock, &receive_fds);
+
+        switch (select(sock + 1, &receive_fds, NULL, NULL, &receive_to)) {
+        case -1:
+          LOG_ERROR << "select() failed: " << strerror(errno) << ".";
+          throw runtime_error("select()");                
+
+        case 0:
+          // timeout
+          receive_len = 0;
+          break;
+
+        default:
+          if ((receive_len = recvfrom(sock, receive_buffer, sizeof(receive_buffer) - 1, 0, (struct sockaddr *) &receive_addr, &receive_addr_len)) == -1) {
+            LOG_ERROR << "recvfrom() failed: " << strerror(errno) << ".";
+            throw runtime_error("recvfrom()");        
+          }
+          
+          if (receive_len < 0 || receive_len >= sizeof(receive_buffer)) {
+            LOG_ERROR << "recvfrom() returned: " << receive_len << " bytes.";
+            throw runtime_error("recvfrom()");                 
+          }
         }
 
         receive_buffer[receive_len] = '\0';
@@ -90,8 +114,8 @@ public:
     }
 
     if (sock != -1) close(sock);
-
     WriterEnded();
+    LOG_INFO << "Receiver ended with err = " << err << ".";  
 
     return (err);
   }
@@ -107,7 +131,7 @@ public:
       string text;
       State stat;
 
-      while ((stat = Pop(text)) != Relay::State::EXIT) {
+      while ((stat = Pop(text, io_timeout_)) != Relay::State::EXIT) {
 
         if (stat == Relay::State::OK) cout << text << endl;
 
@@ -118,6 +142,7 @@ public:
     }
 
     ReaderEnded();
+    LOG_INFO << "Trasmitter ended with err = " << err << ".";
 
     return (err);
   }

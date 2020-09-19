@@ -104,23 +104,27 @@ private:
 
 public:
 
-  static void PrintCommandLine(int argc, char* const argv[], ostringstream& text) {
+  static void PrintCommandLine(int argc, char* const argv[], string& str) {
     //
     // print original command line
     //
-    text.str("");
+    ostringstream text{""};
+
     for (int idx = 0; idx < argc; idx++) {
       if (!idx) text << argv[idx];
       else text << " " << argv[idx];
     }
+    str = text.str();
   }
 
-  static void PrintUsage(ostringstream& text) {
+  static void PrintUsage(string& str) {
     //
     // print usage based on an array of strings
     //
-    text.str("");
+    ostringstream text{""};
+
     for (int idx = 0; usage_[idx]; idx++) text << usage_[idx] << endl;
+    str = text.str();
   }
 
   Arguments(int argc, char* const argv[]) {
@@ -255,7 +259,7 @@ public:
     return (cmdl_ & TEMPEST_ARG_EMPTY);
   }
 
-  bool IsCommandStart(string& url, DataFormat& format, int& interval, nanolog::LogLevel& log, bool& daemon, ostringstream& text) const {
+  bool IsCommandStart(string& url, DataFormat& format, int& interval, nanolog::LogLevel& log, bool& daemon, string& str) const {
     //
     // Return whether the start command was invoked and all its parameters 
     //
@@ -267,17 +271,19 @@ public:
     log = log_native_[log_];
     daemon = cmdl_ & TEMPEST_ARG_DAEMON;
 
-    text.str("");
+    ostringstream text{""};
+
     text << "tempest --url=" << url_;
     text << " --format=" << format_;
     text << " --interval=" << interval_;    
     text << " --log=" << log_;
     if (daemon) text << " --daemon";
+    str = text.str();
 
     return (true);
   }
 
-  bool IsCommandTrace(DataFormat& format, int& interval, nanolog::LogLevel& log, ostringstream& text) const {
+  bool IsCommandTrace(DataFormat& format, int& interval, nanolog::LogLevel& log, string& str) const {
     //
     // Return whether the trace command was invoked and all its parameters 
     //
@@ -287,47 +293,46 @@ public:
     interval = interval_;
     log = log_native_[log_];
     
-    text.str("");
+    ostringstream text{""};
+    
     text << "tempest --trace";
     text << " --format=" << format_;
     text << " --interval=" << interval_;    
     text << " --log=" << log_;
+    str = text.str();
 
     return (true);
   }
 
-  bool IsCommandStop(ostringstream& text) const {
+  bool IsCommandStop(string& str) const {
     //
     // Return whether the stop command was invoked 
     //
     if (TEMPEST_ONLY_STOP(cmdl_)) return (false);
 
-    text.str("");
-    text << "tempest --stop";
+    str = "tempest --stop";
 
     return (true);
   }
 
-  bool IsCommandVersion(ostringstream& text) const {
+  bool IsCommandVersion(string& str) const {
     //
     // Return whether the version command was invoked 
     //
     if (TEMPEST_ONLY_VERSION(cmdl_)) return (false);
 
-    text.str("");
-    text << "tempest --version";
+    str = "tempest --version";
 
     return (true);
   }
 
-  bool IsCommandHelp(ostringstream& text) const {
+  bool IsCommandHelp(string& str) const {
     //
     // Return whether the help command was invoked 
     //
     if (TEMPEST_ONLY_HELP(cmdl_)) return (false);
     
-    text.str("");
-    text << "tempest [--help]";
+    str = "tempest [--help]";
 
     return (true);
   }

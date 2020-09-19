@@ -27,7 +27,7 @@ using namespace tempest;
 int main(int argc, char* const argv[]) {
 
   int err = EXIT_SUCCESS;
-  ostringstream text;
+  string text;
 
   string url;
   Arguments::DataFormat format;
@@ -46,7 +46,7 @@ int main(int argc, char* const argv[]) {
 
   // process command line
   Arguments::PrintCommandLine(argc, argv, text);
-  LOG_INFO << "Application started (command line: \"" << text.str() << "\").";
+  LOG_INFO << "Application started (command line: \"" << text << "\").";
 
   Arguments args = Arguments(argc, argv);
 
@@ -56,13 +56,13 @@ int main(int argc, char* const argv[]) {
     //    
 
     // log and print error
-    text.str("Invalid command line.");
-    LOG_ERROR << text.str();
-    cout << text.str() << endl;
+    text = "Invalid command line.";
+    LOG_ERROR << text;
+    cout << text << endl;
     
     // print usage
     args.PrintUsage(text);
-    cout << endl << text.str();
+    cout << endl << text;
 
     err = EXIT_FAILURE;
   }
@@ -89,6 +89,8 @@ int main(int argc, char* const argv[]) {
     // Main thread should handle signals here
     // <TBD> @mircolino
     //
+    this_thread::sleep_for(chrono::seconds(30));
+    relay.Stop();
 
     int err_rx = rx.get();  
     int err_tx = tx.get();  
@@ -113,23 +115,21 @@ int main(int argc, char* const argv[]) {
     //    
 
     args.PrintUsage(text);
-    cout << text.str();
+    cout << text;
   }
   else {
     //
     // we should never be here
     //
 
-    text.str("Unknown error processing command line.");
-    LOG_ERROR << text.str();
-    cout << text.str() << endl;
+    text = "Unknown error processing command line.";
+    LOG_ERROR << text;
+    cout << text << endl;
 
     err = EXIT_FAILURE;
   }
 
-  text.str("Application ended");
-  if (err) LOG_ERROR << text.str() << " with error " << err << ".";
-  else LOG_INFO << text.str() << ".";
+  LOG_INFO << "Application ended with err = " << err << ".";
 
   return (err);
 }

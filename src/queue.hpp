@@ -66,6 +66,9 @@ public:
     // if the reader is dead, there's no point filling the queue
     if (HasReaderEnded()) return (State::EXIT);
 
+    // the buffer is empty, probably the result of a timeout 
+    if (!str || !str[0]) return (State::RETRY);
+
     // if the queue is full we discard the oldest element
     if (queue_.size() == queue_max_) queue_.pop();
 
