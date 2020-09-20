@@ -115,7 +115,7 @@ public:
 
     if (sock != -1) close(sock);
     WriterEnded();
-    LOG_INFO << "Receiver ended with err = " << err << ".";  
+    LOG_INFO << "Receiver ended with error = " << err << ".";  
 
     return (err);
   }
@@ -123,8 +123,6 @@ public:
   int Transmitter() {
     int err = EXIT_SUCCESS;
 
-    // Relay& relay = *(Relay*)context; 
-      
     try {
       LOG_INFO << "Trasmitter started.";  
 
@@ -142,7 +140,7 @@ public:
     }
 
     ReaderEnded();
-    LOG_INFO << "Trasmitter ended with err = " << err << ".";
+    LOG_INFO << "Trasmitter ended with error = " << err << ".";
 
     return (err);
   }

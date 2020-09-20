@@ -129,7 +129,7 @@ int main(int argc, char* const argv[]) {
     err = EXIT_FAILURE;
   }
 
-  LOG_INFO << "Application ended with err = " << err << ".";
+  LOG_INFO << "Application ended with error = " << err << ".";
 
   return (err);
 }
