@@ -1,26 +1,26 @@
 # WeatherFlow Tempest UDP Relay
 
-A fast and efficient UDP relay service designed to receive WeatherFlow Tempest locally broadcasted [UDP JSON data](https://weatherflow.github.io/SmartWeather/api/udp/v143/), optionally repackage it into the Ecowitt format, and then POST it to Hubitat for consuption.
+A fast and efficient UDP relay service designed to receive WeatherFlow Tempest locally broadcasted [UDP JSON data](https://weatherflow.github.io/SmartWeather/api/udp/v143/), optionally repackage it into the Ecowitt format, and then POST it to Hubitat for consumption.
 
-![Image](https://github.com/mircolino/tempest/raw/master/images/diagram.jpg "Relay Diagram")
+![Diagram](https://github.com/mircolino/tempest/raw/master/images/diagram.jpg "Relay Diagram")
 
 ## Features
 
-- LAN comunication only, no cloud/weather service needed.
+- LAN communication only, no cloud/weather service needed.
 - Entirely written in C++ with no dependencies, external libraries or additional packages to install.
-- Small, fast, efficient and highly asynchrounous with non-blocking I/O and mutlithreaded queue.
-- Designed to leverage exisitng Hubitat driver infrastucture by emulating WeatherFlow REST API or Ecowitt protols.
+- Small, fast, efficient and highly asynchronous with non-blocking I/O and multithreaded queue.
+- Designed to leverage existing Hubitat driver infrastructure by emulating WeatherFlow REST API or Ecowitt protocols.
 
 ## Installation Instructions
 
-- Copy the single "tempest" executable to your host (PC, VM, RPi etc.)
+- Copy the single ```tempest``` executable to your host (PC, VM, RPi etc.)
 - Make sure the file is executable. If you are using Linux run the following command:
 
   ```text
   chmod +x tempest
   ```
 
-- If the host running the relay has a firewall, don't forget to open incoming UPD 50222 port. If, for example, you are using UFW firewall, you can use the following command:
+- If the host running the relay has a firewall, don't forget to open incoming port UPD 50222. If, for example, you are using UFW, you can use the following command:
 
   ```text
   sudo ufw allow 50222/udp
