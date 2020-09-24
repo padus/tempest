@@ -13,7 +13,7 @@
 #include <system.hpp>
 #endif
 
-#include "arguments.hpp"
+#include "args.hpp"
 #include "queue.hpp"
 #include "relay.hpp"
 
