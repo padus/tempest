@@ -17,12 +17,14 @@
 #endif
 
 #include "queue.hpp"
+#include "api.hpp"
 
 // Source ---------------------------------------------------------------------------------------------------------------------
 
 namespace tempest {
 
 using namespace std;
+using namespace json;
 
 class Relay: Queue {
 private:
@@ -107,7 +109,7 @@ public:
 
         receive_buffer[receive_len] = '\0';
       }
-      while (Push(receive_buffer) != Relay::State::EXIT);
+      while (Push(receive_buffer) != Queue::State::EXIT);
     }
     catch (exception const & ex) {
       err = EXIT_FAILURE;
@@ -126,12 +128,13 @@ public:
     try {
       LOG_INFO << "Trasmitter started.";  
 
+      Queue::State stat;
       string text;
-      State stat;
 
-      while ((stat = Pop(text, io_timeout_)) != Relay::State::EXIT) {
+      while ((stat = Pop(text, io_timeout_)) != Queue::State::EXIT) {
+        if (stat == Queue::State::RETRY) continue;
 
-        if (stat == Relay::State::OK) cout << text << endl;
+
 
       }
     }
