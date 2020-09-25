@@ -64,7 +64,7 @@
 #include <cstdio>
 #include <limits>
 
-namespace json {
+namespace tempest {
 
 enum JsonParse {
     STANDARD, COMMENTS
@@ -364,7 +364,7 @@ protected:
     }
 
     const T m_value;
-    void dump(string &out) const override { json::dump(m_value, out); }
+    void dump(string &out) const override { tempest::dump(m_value, out); }
 };
 
 class JsonDouble final : public Value<Json::NUMBER, double> {
@@ -984,6 +984,6 @@ bool Json::has_shape(const shape & types, string & err) const {
     return true;
 }
 
-} // namespace json
+} // namespace tempest
 
 #endif // JSON11_HEADER_GUARD

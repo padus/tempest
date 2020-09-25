@@ -24,7 +24,6 @@
 namespace tempest {
 
 using namespace std;
-using namespace json;
 
 class Relay: Queue {
 private:
@@ -48,6 +47,8 @@ public:
   int Receiver() {
     int err = EXIT_SUCCESS;
     int sock = -1;
+
+    bool trace = (url_.empty() && format_ == Arguments::DataFormat::JSON && !interval_);
 
     try {
       LOG_INFO << "Receiver started.";  
@@ -108,6 +109,12 @@ public:
         }
 
         receive_buffer[receive_len] = '\0';
+
+        if (trace && receive_len) {
+          // trace only and we add nothing to the queue
+          cout << receive_buffer << endl;
+          receive_buffer[0] = '\0';
+        }
       }
       while (Push(receive_buffer) != Queue::State::EXIT);
     }
@@ -133,8 +140,6 @@ public:
 
       while ((stat = Pop(text, io_timeout_)) != Queue::State::EXIT) {
         if (stat == Queue::State::RETRY) continue;
-
-
 
       }
     }

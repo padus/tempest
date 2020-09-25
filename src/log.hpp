@@ -65,7 +65,7 @@ namespace
 
 } // anonymous namespace
 
-namespace nanolog
+namespace tempest
 {
     enum class LogLevel : uint8_t { OFF, DEBUG, INFO, WARN, ERROR };
     
@@ -175,23 +175,6 @@ namespace nanolog
     {
     };
     
-    /*
-     * Ensure initialize() is called prior to any log statements.
-     * log_file_name - root of the file name. For example - "./tmp/nanolog.log"
-     * This will create log files of the form -
-     * ./tmp/nanolog.log
-     * ./tmp/nanolog_2020-09-14-10-15-21.log
-     * ./tmp/nanolog_2020-10-07-17-35-43.log
-     * etc.
-     * log_file_roll_size_mb - mega bytes after which we roll to next log file.
-     */
-    void initialize(GuaranteedLogger gl, std::string const & log_file_name, uint32_t log_file_roll_size_mb);
-    void initialize(NonGuaranteedLogger ngl, std::string const & log_file_name, uint32_t log_file_roll_size_mb);
-
-} // namespace nanolog
-
-namespace nanolog
-{
     typedef std::tuple < char, uint32_t, uint64_t, int32_t, int64_t, double, NanoLogLine::string_literal_t, char * > SupportedTypes;
 
     char const * to_string(LogLevel loglevel)
@@ -809,13 +792,24 @@ namespace nanolog
 	return true;
     }
 
-    void initialize(NonGuaranteedLogger ngl, std::string const & log_file_name, uint32_t log_file_roll_size_mb)
+    /*
+     * Ensure LogInitialize() is called prior to any log statements.
+     * log_file_name - root of the file name. For example - "./tmp/nanolog.log"
+     * This will create log files of the form -
+     * ./tmp/nanolog.log
+     * ./tmp/nanolog_2020-09-14-10-15-21.log
+     * ./tmp/nanolog_2020-10-07-17-35-43.log
+     * etc.
+     * log_file_roll_size_mb - mega bytes after which we roll to next log file.
+     */
+
+    void LogInitialize(NonGuaranteedLogger ngl, std::string const & log_file_name, uint32_t log_file_roll_size_mb)
     {
 	nanologger.reset(new NanoLogger(ngl, log_file_name, log_file_roll_size_mb));
 	atomic_nanologger.store(nanologger.get(), std::memory_order_seq_cst);
     }
 
-    void initialize(GuaranteedLogger gl, std::string const & log_file_name, uint32_t log_file_roll_size_mb)
+    void LogInitialize(GuaranteedLogger gl, std::string const & log_file_name, uint32_t log_file_roll_size_mb)
     {
 	nanologger.reset(new NanoLogger(gl, log_file_name, log_file_roll_size_mb));
 	atomic_nanologger.store(nanologger.get(), std::memory_order_seq_cst);
@@ -833,13 +827,13 @@ namespace nanolog
 	return static_cast<unsigned int>(level) >= loglevel.load(std::memory_order_relaxed);
     }
 
-} // namespace nanolog
+} // namespace tempest
 
-#define NANO_LOG(LEVEL) nanolog::NanoLog() == nanolog::NanoLogLine(LEVEL, __FILE__, __func__, __LINE__)
+#define NANO_LOG(LEVEL) tempest::NanoLog() == tempest::NanoLogLine(LEVEL, __FILE__, __func__, __LINE__)
 
-#define LOG_DEBUG nanolog::is_logged(nanolog::LogLevel::DEBUG) && NANO_LOG(nanolog::LogLevel::DEBUG)
-#define LOG_INFO nanolog::is_logged(nanolog::LogLevel::INFO) && NANO_LOG(nanolog::LogLevel::INFO)
-#define LOG_WARN nanolog::is_logged(nanolog::LogLevel::WARN) && NANO_LOG(nanolog::LogLevel::WARN)
-#define LOG_ERROR nanolog::is_logged(nanolog::LogLevel::ERROR) && NANO_LOG(nanolog::LogLevel::ERROR)
+#define LOG_DEBUG tempest::is_logged(tempest::LogLevel::DEBUG) && NANO_LOG(tempest::LogLevel::DEBUG)
+#define LOG_INFO tempest::is_logged(tempest::LogLevel::INFO) && NANO_LOG(tempest::LogLevel::INFO)
+#define LOG_WARN tempest::is_logged(tempest::LogLevel::WARN) && NANO_LOG(tempest::LogLevel::WARN)
+#define LOG_ERROR tempest::is_logged(tempest::LogLevel::ERROR) && NANO_LOG(tempest::LogLevel::ERROR)
 
 #endif /* NANO_LOG_HEADER_GUARD */

@@ -36,7 +36,7 @@
 // Mask to validate the presence of all required argument(s) that make a specific command valid
 // Expand to TRUE if all required arguments are present
 
-#define TEMPEST_REQ_START(c)    ((c & TEMPEST_ARG_URL) == TEMPEST_ARG_URL)
+#define TEMPEST_REQ_RELAY(c)    ((c & TEMPEST_ARG_URL) == TEMPEST_ARG_URL)
 #define TEMPEST_REQ_TRACE(c)    ((c & TEMPEST_ARG_TRACE) == TEMPEST_ARG_TRACE)
 #define TEMPEST_REQ_STOP(c)     ((c & TEMPEST_ARG_STOP) == TEMPEST_ARG_STOP)
 #define TEMPEST_REQ_VERSION(c)  ((c & TEMPEST_ARG_VERSION) == TEMPEST_ARG_VERSION)
@@ -45,7 +45,7 @@
 // Mask to validate the presence of only required and optional argument(s) that make a specific command valid
 // Expand to TRUE if not only required and optional arguments are present
 
-#define TEMPEST_ONLY_START(c)   (c & ~(TEMPEST_ARG_URL | TEMPEST_ARG_FORMAT | TEMPEST_ARG_INTERVAL | TEMPEST_ARG_LOG | TEMPEST_ARG_DAEMON))
+#define TEMPEST_ONLY_RELAY(c)   (c & ~(TEMPEST_ARG_URL | TEMPEST_ARG_FORMAT | TEMPEST_ARG_INTERVAL | TEMPEST_ARG_LOG | TEMPEST_ARG_DAEMON))
 #define TEMPEST_ONLY_TRACE(c)   (c & ~(TEMPEST_ARG_TRACE | TEMPEST_ARG_FORMAT | TEMPEST_ARG_INTERVAL | TEMPEST_ARG_LOG))
 #define TEMPEST_ONLY_STOP(c)    (c & ~(TEMPEST_ARG_STOP))
 #define TEMPEST_ONLY_VERSION(c) (c & ~(TEMPEST_ARG_VERSION))
@@ -69,13 +69,29 @@ private:
   static const char* usage_[];                                  // see initialization below
   static const struct option option_[];                         // see initialization below 
 
-  const DataFormat format_native_[3]{DataFormat::JSON, DataFormat::REST, DataFormat::ECOWITT};
-  const nanolog::LogLevel log_native_[4]{nanolog::LogLevel::ERROR, nanolog::LogLevel::WARN, nanolog::LogLevel::INFO, nanolog::LogLevel::DEBUG};
+  static bool FormatNum2Enum(int num, DataFormat& format) {
+    const DataFormat format_native[3]{DataFormat::JSON, DataFormat::REST, DataFormat::ECOWITT};
+
+    if (num < 0 || num > 2) return (false);
+    format = format_native[num];
+    return (true);
+  }
+
+  static bool LogNum2Enum(int num, LogLevel& log) {
+    const LogLevel log_native[4]{LogLevel::ERROR, LogLevel::WARN, LogLevel::INFO, LogLevel::DEBUG};
+
+    if (num < 0 || num > 3) return (false);
+    log = log_native[num];
+    return (true);
+  }
 
   string url_;
-  int format_;
+  DataFormat format_;
   int interval_;
-  int log_;
+  LogLevel log_;
+
+  int format_num_;
+  int log_num_;
 
   int cmdl_;
 
@@ -134,9 +150,12 @@ public:
 
     // initialize options to default state
     url_ = "";
-    format_ = 1;
+    format_ = DataFormat::REST;
     interval_ = 1;
-    log_ = 2;
+    log_ = LogLevel::INFO;
+
+    format_num_ = 1;
+    log_num_ = 2;
 
     cmdl_ = 0;
   
@@ -163,8 +182,8 @@ public:
 
           case 'f':
             num = stoi(arg);
-            if (num < 0 || num > 2) throw out_of_range(arg);
-            format_ = num;
+            if (!FormatNum2Enum(num, format_)) throw out_of_range(arg);
+            format_num_ = num;
 
             cmdl_ |= TEMPEST_ARG_FORMAT;
             break;
@@ -179,8 +198,8 @@ public:
 
           case 'l':
             num = stoi(arg);
-            if (num < 0 || num > 3) throw out_of_range(arg);
-            log_ = num;
+            if (!LogNum2Enum(num, log_)) throw out_of_range(arg);
+            log_num_ = num;
 
             cmdl_ |= TEMPEST_ARG_LOG;
             break;
@@ -213,13 +232,13 @@ public:
       //
       // check command line semantics
       //
-      if (TEMPEST_REQ_START(cmdl_)) {
-        // start command
-        if (TEMPEST_ONLY_START(cmdl_)) throw invalid_argument("start");
+      if (TEMPEST_REQ_RELAY(cmdl_)) {
+        // realy command
+        if (TEMPEST_ONLY_RELAY(cmdl_) || !interval_) throw invalid_argument("relay");
       }
       else if (TEMPEST_REQ_TRACE(cmdl_)) {
         // trace command
-        if (TEMPEST_ONLY_TRACE(cmdl_)) throw invalid_argument("trace");
+        if (TEMPEST_ONLY_TRACE(cmdl_) || (!interval_ && format_ != DataFormat::JSON)) throw invalid_argument("trace");
       }
       else if (TEMPEST_REQ_STOP(cmdl_)) {
         // stop command
@@ -259,46 +278,46 @@ public:
     return (cmdl_ & TEMPEST_ARG_EMPTY);
   }
 
-  bool IsCommandStart(string& url, DataFormat& format, int& interval, nanolog::LogLevel& log, bool& daemon, string& str) const {
+  bool IsCommandRelay(string& url, DataFormat& format, int& interval, LogLevel& log, bool& daemon, string& str) const {
     //
-    // Return whether the start command was invoked and all its parameters 
+    // Return whether the relay command was invoked and all its parameters 
     //
-    if (TEMPEST_ONLY_START(cmdl_)) return (false);
+    if (TEMPEST_ONLY_RELAY(cmdl_)) return (false);
     
     url = url_;
-    format = format_native_[format_];
+    format = format_;
     interval = interval_;
-    log = log_native_[log_];
+    log = log_;
     daemon = cmdl_ & TEMPEST_ARG_DAEMON;
 
     ostringstream text{""};
 
     text << "tempest --url=" << url_;
-    text << " --format=" << format_;
+    text << " --format=" << format_num_;
     text << " --interval=" << interval_;    
-    text << " --log=" << log_;
+    text << " --log=" << log_num_;
     if (daemon) text << " --daemon";
     str = text.str();
 
     return (true);
   }
 
-  bool IsCommandTrace(DataFormat& format, int& interval, nanolog::LogLevel& log, string& str) const {
+  bool IsCommandTrace(DataFormat& format, int& interval, LogLevel& log, string& str) const {
     //
     // Return whether the trace command was invoked and all its parameters 
     //
     if (TEMPEST_ONLY_TRACE(cmdl_)) return (false);
     
-    format = format_native_[format_];
+    format = format_;
     interval = interval_;
-    log = log_native_[log_];
+    log = log_;
     
     ostringstream text{""};
     
     text << "tempest --trace";
-    text << " --format=" << format_;
+    text << " --format=" << format_num_;
     text << " --interval=" << interval_;    
-    text << " --log=" << log_;
+    text << " --log=" << log_num_;
     str = text.str();
 
     return (true);
@@ -345,7 +364,7 @@ const char* Arguments::usage_[] = {
   "",
   "Commands:",
   "",    
-  "Start:        tempest --url=<url> [--format=<fmt>] [--interval=<min>]",
+  "Relay:        tempest --url=<url> [--format=<fmt>] [--interval=<min>]",
   "                      [--log=<lev>] [--daemon]",
   "Trace:        tempest --trace [--format=<fmt>] [--interval=<min>]",
   "                      [--log=<lev>]",  
@@ -360,14 +379,15 @@ const char* Arguments::usage_[] = {
   "                      0) JSON untranslated, 1) REST API, 2) Ecowitt",
   "                      (default if omitted: 1)",
   "-i | --interval=<min> interval in minutes at which data is relayed:",
-  "                      0 <= min <= 30 (default if omitted: 1)",
+  "                      0 <= min <= 30 (default if omitted: 1, 0 only",
+  "                      permitted when: tempest --trace --format=0)",
   "-l | --log=<lev>      0) only errors",
   "                      1) errors and warnings",
   "                      2) errors, warnings and info (default if omitted)",
   "                      3) errors, warnings, info and debug (everything)",
   "-d | --daemon         run as a service",
   "-t | --trace          relay data to the terminal standard output",
-  "-s | --stop           stop the relay and exit gracefully", 
+  "-s | --stop           stop relaying/tracing and exit gracefully", 
   "-v | --version        print version information",
   "-h | --help           print this help",
   "",

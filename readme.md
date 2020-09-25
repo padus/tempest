@@ -33,7 +33,7 @@ A fast and efficient UDP relay service designed to receive WeatherFlow Tempest l
 
   Commands:
 
-  Start:        tempest --url=<url> [--format=<fmt>] [--interval=<min>]
+  Relay:        tempest --url=<url> [--format=<fmt>] [--interval=<min>]
                         [--log=<lev>] [--daemon]
   Trace:        tempest --trace [--format=<fmt>] [--interval=<min>]
                         [--log=<lev>]
@@ -48,14 +48,15 @@ A fast and efficient UDP relay service designed to receive WeatherFlow Tempest l
                         0) JSON untranslated, 1) REST API, 2) Ecowitt
                         (default if omitted: 1)
   -i | --interval=<min> interval in minutes at which data is relayed:
-                        0 <= min <= 30 (default if omitted: 1)
+                        0 <= min <= 30 (default if omitted: 1, 0 only
+                        permitted when: tempest --trace --format=0)
   -l | --log=<lev>      0) only errors
                         1) errors and warnings
                         2) errors, warnings and info (default if omitted)
                         3) errors, warnings, info and debug (everything)
   -d | --daemon         run as a service
   -t | --trace          relay data to the terminal standard output
-  -s | --stop           stop the relay and exit gracefully
+  -s | --stop           stop relaying/tracing and exit gracefully
   -v | --version        print version information
   -h | --help           print this help
 

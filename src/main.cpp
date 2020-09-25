@@ -32,7 +32,7 @@ int main(int argc, char* const argv[]) {
   string url;
   Arguments::DataFormat format;
   int interval;
-  nanolog::LogLevel log;
+  LogLevel log;
   
   bool daemon = false;
 
@@ -42,7 +42,7 @@ int main(int argc, char* const argv[]) {
   fs::path log_name = app_name.replace_extension(".log");
 
   // initialize logger
-  nanolog::initialize(nanolog::GuaranteedLogger(), log_name.string(), 1);
+  LogInitialize(GuaranteedLogger(), log_name.string(), 1);
 
   // process command line
   Arguments::PrintCommandLine(argc, argv, text);
@@ -66,12 +66,12 @@ int main(int argc, char* const argv[]) {
 
     err = EXIT_FAILURE;
   }
-  else if (args.IsCommandStart(url, format, interval, log, daemon, text) || args.IsCommandTrace(format, interval, log, text)) {
+  else if (args.IsCommandRelay(url, format, interval, log, daemon, text) || args.IsCommandTrace(format, interval, log, text)) {
     //
     // start trasmitting or tracing (if url is empty)
     //
 
-    nanolog::set_log_level(log);
+    set_log_level(log);
 
     if (daemon) {
       //

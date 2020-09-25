@@ -21,7 +21,6 @@
 namespace tempest {
 
 using namespace std;
-using namespace json;
 
 class UdpEvent {
 public:
