@@ -52,17 +52,7 @@
 #ifndef JSON11_HEADER_GUARD
 #define JSON11_HEADER_GUARD
 
-#include <string>
-#include <vector>
-#include <map>
-#include <memory>
-#include <initializer_list>
-
-#include <cassert>
-#include <cmath>
-#include <cstdlib>
-#include <cstdio>
-#include <limits>
+#include <system.hpp>
 
 namespace tempest {
 

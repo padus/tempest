@@ -12,12 +12,9 @@
 
 // Includes -------------------------------------------------------------------------------------------------------------------
 
-#ifndef TEMPEST_SYSTEM
-#include <system.hpp>
-#endif
+#include "system.hpp"
 
-#include "queue.hpp"
-#include "api.hpp"
+#include "tempest.hpp"
 
 // Source ---------------------------------------------------------------------------------------------------------------------
 
@@ -25,30 +22,23 @@ namespace tempest {
 
 using namespace std;
 
-class Relay: Queue {
-private:
-  const int buffer_max_;
-  const int io_timeout_;
-  const int port_;
-  const string url_;
-  const Arguments::DataFormat format_;
-  const int interval_;
-
+class Relay: Tempest {
 public:
 
   Relay(const string& url, Arguments::DataFormat format, int interval, int port = 50222, int buffer_max = 1024, int queue_max = 128, int io_timeout = 1):
-    Queue(queue_max), url_{url}, format_{format}, interval_{interval}, port_{port}, buffer_max_{buffer_max}, io_timeout_{io_timeout} {}
+    Tempest(queue_max), url_{url}, format_{format}, interval_{interval? (interval * 60): 60}, port_{port}, buffer_max_{buffer_max}, io_timeout_{io_timeout} {}
 
-  void Stop() {
-    ReaderEnded();
-    WriterEnded();
-  }
+  inline bool Stop(void) { return (Exit()); }
 
   int Receiver() {
     int err = EXIT_SUCCESS;
     int sock = -1;
 
-    bool trace = (url_.empty() && format_ == Arguments::DataFormat::JSON && !interval_);
+    //--------------------------
+
+    bool trace = (url_.empty() && format_ == Arguments::DataFormat::JSON);
+
+    // -------------------------
 
     try {
       LOG_INFO << "Receiver started.";  
@@ -107,23 +97,29 @@ public:
             throw runtime_error("recvfrom()");                 
           }
         }
+        
+        if (receive_len) {
+          // we got data, let's terminate it
+          receive_buffer[receive_len] = '\0';
 
-        receive_buffer[receive_len] = '\0';
-
-        if (trace && receive_len) {
-          // trace only and we add nothing to the queue
-          cout << receive_buffer << endl;
-          receive_buffer[0] = '\0';
+          if (trace) {
+            // trace only
+            cout << receive_buffer << endl;
+          }
+          else {
+            // write data to tempest
+            Write(receive_buffer);
+          }
         }
       }
-      while (Push(receive_buffer) != Queue::State::EXIT);
+      while (Continue());
     }
     catch (exception const & ex) {
       err = EXIT_FAILURE;
     }
 
     if (sock != -1) close(sock);
-    WriterEnded();
+    Exit();
     LOG_INFO << "Receiver ended with error = " << err << ".";  
 
     return (err);
@@ -132,27 +128,88 @@ public:
   int Transmitter() {
     int err = EXIT_SUCCESS;
 
+    //--------------------------
+
+    bool trace = url_.empty() && format_ != Arguments::DataFormat::JSON;
+
+    // -------------------------
+
     try {
       LOG_INFO << "Trasmitter started.";  
 
-      Queue::State stat;
-      string text;
+      while (Continue()) {
 
-      while ((stat = Pop(text, io_timeout_)) != Queue::State::EXIT) {
-        if (stat == Queue::State::RETRY) continue;
+        Read(interval_);
 
+        //
+        // Curl data
+        //
       }
     }
     catch (exception const & ex) {
       err = EXIT_FAILURE;
     }
 
-    ReaderEnded();
+    Exit();
     LOG_INFO << "Trasmitter ended with error = " << err << ".";
 
     return (err);
   }
 
+private:
+
+  bool Exit(void) {
+    scoped_lock<mutex> lock{tempest_access_};
+
+    exit_ = true;
+
+    // wake up the transmitter if he's sleeping
+    transmitter_wakeup_.notify_one(); 
+
+    return (true);    
+  }
+
+  inline bool Continue(void) { return (!exit_); }
+
+  bool Write(const char udp[]) {
+    // write data to tempest
+    scoped_lock<mutex> lock{tempest_access_};
+
+    size_t obs;
+    UdpEvent id = WriteUdp(udp, obs);
+    if (id == UdpEvent::UNRECOGNIZED) LOG_WARN << "Unrecognized UDP event: " << udp;
+    if (id == UdpEvent::INVALID) LOG_ERROR << "Invalid or malformed UDP event: " << udp;
+
+    return (true);
+  }
+
+  bool Read(int interval) {
+    // read data from tempest
+    unique_lock<mutex> lock{tempest_access_};
+
+    transmitter_wakeup_.wait_for(lock, chrono::seconds(interval));
+    // == cv_status::timeout
+
+    //
+    // access tempest
+    //
+
+    PrintStats();
+
+
+    return (true);
+  }
+
+  condition_variable transmitter_wakeup_;
+  mutex tempest_access_;
+  bool exit_{false};
+
+  const int buffer_max_;
+  const int io_timeout_;
+  const int port_;
+  const string url_;
+  const Arguments::DataFormat format_;
+  const int interval_;
 };
 
 } // namespace tempest

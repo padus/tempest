@@ -22,9 +22,17 @@
 #include <ctime>
 #include <cstdint>
 #include <cstring>
+#include <cassert>
+#include <cmath>
+#include <cstdlib>
+#include <limits>
 
 #include <string>
 #include <regex>
+
+#include <vector>
+#include <map>
+#include <initializer_list>
 
 #include <chrono>
 #include <thread>
@@ -52,6 +60,13 @@
 #include <curl/curl.h>
 #include "log.hpp"
 #include "json.hpp"
+
+// Source ---------------------------------------------------------------------------------------------------------------------
+namespace tempest {
+
+static const std::string empty_string = "";
+
+} // namespace tempest
 
 // Recycle Bin ----------------------------------------------------------------------------------------------------------------
 

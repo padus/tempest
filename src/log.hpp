@@ -15,12 +15,10 @@
 // to do so, subject to the following conditions:
 //
 
-#ifndef NANO_LOG_HEADER_GUARD
-#define NANO_LOG_HEADER_GUARD
+#ifndef NANOLOG_HEADER_GUARD
+#define NANOLOG_HEADER_GUARD
 
-#ifndef TEMPEST_SYSTEM
 #include <system.hpp>
-#endif
 
 namespace
 {
@@ -836,4 +834,4 @@ namespace tempest
 #define LOG_WARN tempest::is_logged(tempest::LogLevel::WARN) && NANO_LOG(tempest::LogLevel::WARN)
 #define LOG_ERROR tempest::is_logged(tempest::LogLevel::ERROR) && NANO_LOG(tempest::LogLevel::ERROR)
 
-#endif /* NANO_LOG_HEADER_GUARD */
+#endif /* NANOLOG_HEADER_GUARD */
