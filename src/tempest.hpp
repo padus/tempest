@@ -14,29 +14,13 @@
 
 #include "system.hpp"
 
+#include "convert.hpp"
+
 // Source ---------------------------------------------------------------------------------------------------------------------
 
 namespace tempest {
 
 using namespace std;
-
-// -------------------------------------------------------------
-
-enum UdpEvent {
-  UNRECOGNIZED = 0,             // Unrecognized/not supported 
-
-  PRECIPITATION = 1,            // Rain Start
-  STRIKE = 2,                   // Lightning Strike
-  WIND = 3,                     // Rapid Wind
-  AIR = 4,                      // Air Observation
-  SKY = 5,                      // Sky Observation
-  TEMPEST = 6,                  // Tempest Observation
-  DEVICE = 7,                   // Device Status
-  HUB = 8,                      // Hub Status
-
-  DEBUG = 1024,                 // Debug event
-  INVALID = -1                  // Invalid/malformed event
-};
 
 // -------------------------------------------------------------
 
@@ -180,6 +164,8 @@ public:
 
     wind_lull_ = wind_avg_ = wind_gust_ = wind_direction_ = 0;
     wind_sample_interval_ = 0;
+
+    event_count_rain_ = event_count_strike_ = event_count_wind_ = event_count_observation_ = event_count_status_ = 0;
   }
 
   const string id_;
@@ -218,6 +204,12 @@ public:
   double wind_gust_;
   double wind_direction_;
   int wind_sample_interval_;
+
+  uint event_count_rain_;                                       // stats
+  uint event_count_strike_;                                     // stats
+  uint event_count_wind_;                                       // stats
+  uint event_count_observation_;                                // stats
+  uint event_count_status_;                                     // stats
 };
 
 // -------------------------------------------------------------
@@ -235,7 +227,11 @@ public:
     radio_version_ = radio_reboot_count_ = radio_i2c_bus_err_count_ = 0;
     radio_ = RadioStatus::OFF;
     mqtt_[0] = mqtt_[1] = 0;
+
+    event_count_status_ = 0;
   }
+
+  // -----------------------------------------------------------
 
   Sensor& GetSensor(const string& sensor_id) {
     size_t idx;
@@ -268,6 +264,8 @@ public:
   int mqtt_[2];
 
   vector<Sensor> sensor_;
+
+  uint event_count_status_;                                     // stats
 };
 
 // -------------------------------------------------------------
@@ -275,58 +273,119 @@ public:
 class Tempest {
 public:
 
-  Tempest(size_t queue_max = 128): queue_max_{queue_max} {}
-
-  void PrintStats(void) {
-    size_t hubs, sensors;
-
-    cout << "-----------------------------------------------" << endl;
-    hubs = hub_.size();
-    cout << "Hubs: " << hubs << endl;
-    for (size_t i = 0; i < hubs; i++ ) {
-      const Hub& hub = hub_[i];
-      cout << "Hub: " << hub.id_ << endl;
-      sensors = hub.sensor_.size(); 
-      for (size_t i = 0; i < sensors; i++ ) {
-        const Sensor& sensor = hub.sensor_[i];
-        cout << "  Sensor: " << sensor.id_ << endl;
-        cout << "    Precipitation: " << sensor.precipitation_.size() << endl;
-        cout << "    Strike: " << sensor.strike_.size() << endl;
-        cout << "    Wind: " << sensor.wind_.size() << endl;        
-      }
-    }
-    cout << "-----------------------------------------------" << endl;
+  Tempest(size_t queue_max = 128): start_time_{time(nullptr)}, queue_max_{queue_max} {
+    event_count_invalid_ = event_count_unknown_ = event_count_debug_ = 0;
   }
 
-  UdpEvent WriteUdp(const char udp[], size_t& obs) {
-    UdpEvent id =  UdpEvent::INVALID;
-    obs = 0;
+  // -----------------------------------------------------------
+
+  string StatsUdp(void) const {
+    size_t hubs, sensors;
+    
+    ostringstream stats{""};
+
+    double uptime = difftime(time(nullptr), start_time_);
+    int days = uptime / 86400;
+    uptime -= days * 86400;
+    int hours = uptime / 3600;
+    uptime -= hours * 3600;
+    int minutes = uptime / 60;
+    uptime -= minutes * 60;
+    int seconds = uptime;
+
+    stats << "Uptime: " << days << "d." << hours << "h." << minutes << "m." << seconds << "s" << endl;
+    stats << "Invalid Events: " << event_count_invalid_ << endl;
+    stats << "Debug Events: " << event_count_debug_ << endl;
+    stats << "Unknown Events: " << event_count_unknown_ << endl;
+    hubs = hub_.size();
+    stats << "Hubs: " << hubs << endl;
+    for (size_t i = 0; i < hubs; i++ ) {
+      const Hub& hub = hub_[i];
+      stats << "[" << i << "]: " << hub.id_ << " " << hub.version_ << endl;
+      stats << "     Status Events: " << hub.event_count_status_ << endl;
+      sensors = hub.sensor_.size(); 
+      stats << "     Sensors: " << sensors << endl;
+      for (size_t i = 0; i < sensors; i++ ) {
+        const Sensor& sensor = hub.sensor_[i];
+        stats << "     [" << i << "]: " << sensor.id_ << " " << sensor.version_ << endl;
+        stats << "          Rain Start Events: " << sensor.event_count_rain_ << endl;
+        stats << "          Lightning Strike Events: " << sensor.event_count_strike_ << endl;
+        stats << "          Rapid wind Events: " << sensor.event_count_wind_ << endl;
+        stats << "          Observation Events: " << sensor.event_count_observation_ << endl;
+        stats << "          Status Events: " << sensor.event_count_status_ << endl;
+      }
+    }
+
+    return (stats.str()); 
+  }
+
+  // -----------------------------------------------------------
+
+  size_t WriteUdp(const char udp[], size_t udp_len, bool& notify) {
+    //
+    // return the number of events/observation written to tempest
+    // or -1 if error
+    //
+    size_t size = -1;
+    notify = false;
 
     string err;
     Json event = Json::parse(udp, err);
-
-    if (event == nullptr) LOG_ERROR << "JSON parsing error: " << err;
+    if (event == nullptr) {
+      event_count_invalid_++;
+      LOG_ERROR << "JSON error: " << err << " parsing: " << udp;
+    }
     else {
-      obs = 1;
-      size_t idx = 0;
       const string& type = event["type"].string_value();
+      size_t obs, idx = 0;
+      size = 0;
 
-           if (type == "evt_precip")               id = UdpRainStart(event);
-      else if (type == "evt_strike")               id = UdpLightningStrike(event);
-      else if (type == "rapid_wind")               id = UdpRapidWind(event);
-      else if (type == "obs_air")             do { id = UdpAirObservation(event, idx, obs); } while (id == UdpEvent::AIR && ++idx < obs);
-      else if (type == "obs_sky")             do { id = UdpSkyObservation(event, idx, obs); } while (id == UdpEvent::SKY && ++idx < obs);
-      else if (type == "obs_st")              do { id = UdpTempestObservation(event, idx, obs); } while (id == UdpEvent::TEMPEST && ++idx < obs);
-      else if (type == "device_status")            id = UdpDeviceStatus(event);
-      else if (type == "hub_status")               id = UdpHubStatus(event);
-      else if (type.find("debug") != string::npos) id = UdpEvent::DEBUG;
-      else                                         id = UdpEvent::UNRECOGNIZED;
+           if (type == "evt_precip")              { size = UdpRainStart(event); if (size) notify = true; }
+      else if (type == "evt_strike")              { size = UdpLightningStrike(event); if (size) notify = true; } 
+      else if (type == "rapid_wind")                size = UdpRapidWind(event);
+      else if (type == "obs_air")             do { size += UdpAirObservation(event, idx, obs); } while (++idx < obs);
+      else if (type == "obs_sky")             do { size += UdpSkyObservation(event, idx, obs); } while (++idx < obs);
+      else if (type == "obs_st")              do { size += UdpTempestObservation(event, idx, obs); } while (++idx < obs);
+      else if (type == "device_status")             size = UdpDeviceStatus(event);
+      else if (type == "hub_status")                size = UdpHubStatus(event);
+      else if (type.find("debug") != string::npos)  event_count_debug_++; 
+      else                                        { event_count_unknown_++; LOG_WARN << "Unrecognized UDP event: " << udp; }
     }
 
-    return (id);
+    return (size);
+  }
+
+  // -----------------------------------------------------------
+
+  bool ReadEcowitt(string& data) {
+    //
+    // return empty string if error
+    //
+    ostringstream eco{""};
+
+    eco << "Ecowitt Format";
+
+    data = eco.str();
+    return (!data.empty());
+  }
+
+  // -----------------------------------------------------------
+
+  bool ReadREST(string& data) {
+    //
+    // return empty string if error
+    //
+    ostringstream rest{""};
+
+    rest << "WeatherFlow REST Format";
+
+    data = rest.str();
+    return (!data.empty());
   }
 
 private:
+
+  // -----------------------------------------------------------
 
   Hub& GetHub(const string& hub_id) {
     size_t idx;
@@ -339,25 +398,27 @@ private:
     return (hub_[idx]);
   }
 
+  // -----------------------------------------------------------
+
   const string& HubId(const Json& event) const { return (event["hub_sn"].string_value()); }
   const string& SensorId(const Json& event) const { return (event["serial_number"].string_value()); }
   double DeviceVersion(const Json& event) const { return (event["firmware_revision"].is_number()? event["firmware_revision"].number_value(): strtod(event["firmware_revision"].string_value().c_str(), nullptr)); }
 
-  // Rain Start Event --------------------------------------------
+  // Rain Start Event ------------------------------------------
   //
   // {
   //   "serial_number":"SK-00008453",
   //   "type":"evt_precip",
   //   "hub_sn":"HB-00000001",
   //   "evt":[
-  //     1493322445                                               epoch
+  //     1493322445                                             epoch
   //   ]
   // }
   //
   // "{\"serial_number\":\"SK-00008453\",\"type\":\"evt_precip\",\"hub_sn\":\"HB-00000001\",\"evt\":[1493322445]}"
   //
 
-  UdpEvent UdpRainStart(const Json& event) {
+  size_t UdpRainStart(const Json& event) {
     Sensor& sensor = GetHub(HubId(event)).GetSensor(SensorId(event));
     const Json::array& evt = event["evt"].array_items();
 
@@ -365,26 +426,27 @@ private:
     if (sensor.precipitation_.size() >= queue_max_) sensor.precipitation_.pop();
     sensor.precipitation_.emplace(sensor.last_update_);
 
-    return (UdpEvent::PRECIPITATION);
+    sensor.event_count_rain_++;
+    return (1);
   }
 
-  // Lightning Strike Event --------------------------------------
+  // Lightning Strike Event ------------------------------------
   //
   // {
   //   "serial_number":"AR-00004049",
   //   "type":"evt_strike",
   //   "hub_sn":"HB-00000001",
   //   "evt":[
-  //     1493322445,                                              epoch
-  //     27,                                                      lightning strike distance (km)
-  //     3848                                                     lightning strike energy
+  //     1493322445,                                            epoch
+  //     27,                                                    lightning strike distance (km)
+  //     3848                                                   lightning strike energy
   //   ]
   // }
   //
   // "{\"serial_number\":\"AR-00004049\",\"type\":\"evt_strike\",\"hub_sn\":\"HB-00000001\",\"evt\":[1493322445,27,3848]}"
   //
 
-  UdpEvent UdpLightningStrike(const Json& event) {
+  size_t UdpLightningStrike(const Json& event) {
     Sensor& sensor = GetHub(HubId(event)).GetSensor(SensorId(event));
     const Json::array& evt = event["evt"].array_items();
 
@@ -392,26 +454,27 @@ private:
     if (sensor.strike_.size() >= queue_max_) sensor.strike_.pop();
     sensor.strike_.emplace(sensor.last_update_, evt[1].number_value(), evt[2].number_value());
 
-    return (UdpEvent::STRIKE);
+    sensor.event_count_strike_++;
+    return (1);
   }
 
-  // Rapid Wind Event --------------------------------------------
+  // Rapid Wind Event ------------------------------------------
   //
   // {
   //   "serial_number":"SK-00008453",
   //   "type":"rapid_wind",
   //   "hub_sn":"HB-00000001",
   //   "ob":[
-  //     1493322445,                                              epoch
-  //     2.3,                                                     wind speed (mps)
-  //     128                                                      wind direction (deg)
+  //     1493322445,                                            epoch
+  //     2.3,                                                   wind speed (mps)
+  //     128                                                    wind direction (deg)
   //   ]
   // }
   //
   // "{\"serial_number\":\"SK-00008453\",\"type\":\"rapid_wind\",\"hub_sn\":\"HB-00000001\",\"ob\":[1493322445,2.3,128]}"
   //
 
-  UdpEvent UdpRapidWind(const Json& event) {
+  size_t UdpRapidWind(const Json& event) {
     Sensor& sensor = GetHub(HubId(event)).GetSensor(SensorId(event));
     const Json::array& evt = event["ob"].array_items();
 
@@ -419,10 +482,11 @@ private:
     if (sensor.wind_.size() >= queue_max_) sensor.wind_.pop();
     sensor.wind_.emplace(sensor.last_update_, evt[1].number_value(), evt[2].number_value());
 
-    return (UdpEvent::WIND);
+    sensor.event_count_wind_++;
+    return (1);
   }
 
-  // Air Observation ---------------------------------------------
+  // Air Observation -------------------------------------------
   //
   // {
   //   "serial_number":"AR-00004049",
@@ -430,14 +494,14 @@ private:
   //   "hub_sn":"HB-00000001",
   //   "obs":[
   //     [
-  //       1493164835,                                            epoch
-  //       835.0,                                                 pressure (MB)
-  //       10.0,                                                  temperature (C)
-  //       45,                                                    humidity (%)
-  //       0,                                                     lightning strike count
-  //       0,                                                     lightning strike avg distance (km)
-  //       3.46,                                                  battery (V)
-  //       1                                                      report interval (minutes)
+  //       1493164835,                                          epoch
+  //       835.0,                                               pressure (MB)
+  //       10.0,                                                temperature (C)
+  //       45,                                                  humidity (%)
+  //       0,                                                   lightning strike count
+  //       0,                                                   lightning strike avg distance (km)
+  //       3.46,                                                battery (V)
+  //       1                                                    report interval (minutes)
   //     ]
   //   ],
   //   "firmware_revision":17
@@ -446,7 +510,7 @@ private:
   // "{\"serial_number\":\"AR-00004049\",\"type\":\"obs_air\",\"hub_sn\":\"HB-00000001\",\"obs\":[[1493164835,835.0,10.0,45,0,0,3.46,1]],\"firmware_revision\":17}"
   //
 
-  UdpEvent UdpAirObservation(const Json& event, size_t idx, size_t& size) {
+  size_t UdpAirObservation(const Json& event, size_t idx, size_t& size) {
     // first call with idx = 0
 
     Sensor& sensor = GetHub(HubId(event)).GetSensor(SensorId(event));
@@ -454,7 +518,7 @@ private:
     // we should have a vector of observation
     const Json::array& obs = event["obs"].array_items();
     size = obs.size();
-    if (idx >= size) return (UdpEvent::INVALID);
+    if (idx >= size) return (0);
 
     sensor.version_ = DeviceVersion(event);
     const Json::array& evt = obs[idx].array_items();
@@ -468,10 +532,11 @@ private:
     sensor.battery_ = evt[6].number_value();
     sensor.report_interval_ = evt[7].number_value();
 
-    return (UdpEvent::AIR);
+    sensor.event_count_observation_++;
+    return (1);
   }
 
-  // Sky Observation ---------------------------------------------
+  // Sky Observation -------------------------------------------
   //
   // {
   //   "serial_number":"SK-00008453",
@@ -479,20 +544,20 @@ private:
   //   "hub_sn":"HB-00000001",
   //   "obs":[
   //     [
-  //       1493321340,                                            epoch
-  //       9000,                                                  illuminance (Lux)
-  //       10,                                                    uv (Index)
-  //       0.0,                                                   precipitation accumulated (mm)
-  //       2.6,                                                   wind lull (minimum 3 second sample) (m/s)
-  //       4.6,                                                   wind avg (average over report interval) (m/s)
-  //       7.4,                                                   wind gust (maximum 3 second sample) (m/s)
-  //       187,                                                   wind direction (deg)
-  //       3.12,                                                  battery (V)
-  //       1,                                                     report interval (minutes)
-  //       130,                                                   solar radiation (W/m^2)
-  //       null,                                                  local day rain accumulation (mm)
-  //       0,                                                     precipitation type	(0 = none, 1 = rain, 2 = hail)
-  //       3                                                      wind sample interval (seconds)
+  //       1493321340,                                          epoch
+  //       9000,                                                illuminance (Lux)
+  //       10,                                                  uv (Index)
+  //       0.0,                                                 precipitation accumulated (mm)
+  //       2.6,                                                 wind lull (minimum 3 second sample) (m/s)
+  //       4.6,                                                 wind avg (average over report interval) (m/s)
+  //       7.4,                                                 wind gust (maximum 3 second sample) (m/s)
+  //       187,                                                 wind direction (deg)
+  //       3.12,                                                battery (V)
+  //       1,                                                   report interval (minutes)
+  //       130,                                                 solar radiation (W/m^2)
+  //       null,                                                local day rain accumulation (mm)
+  //       0,                                                   precipitation type	(0 = none, 1 = rain, 2 = hail)
+  //       3                                                    wind sample interval (seconds)
   //     ]
   //   ],
   //   "firmware_revision":29
@@ -501,7 +566,7 @@ private:
   // "{\"serial_number\":\"SK-00008453\",\"type\":\"obs_sky\",\"hub_sn\":\"HB-00000001\",\"obs\":[[1493321340,9000,10,0.0,2.6,4.6,7.4,187,3.12,1,130,null,0,3]],\"firmware_revision\":29}"
   //
 
-  UdpEvent UdpSkyObservation(const Json& event, size_t idx, size_t& size) {
+  size_t UdpSkyObservation(const Json& event, size_t idx, size_t& size) {
     // first call with idx = 0
 
     Sensor& sensor = GetHub(HubId(event)).GetSensor(SensorId(event));
@@ -509,7 +574,7 @@ private:
     // we should have a vector of observation
     const Json::array& obs = event["obs"].array_items();
     size = obs.size();
-    if (idx >= size) return (UdpEvent::INVALID);
+    if (idx >= size) return (0);
 
     sensor.version_ = DeviceVersion(event);
     const Json::array& evt = obs[idx].array_items();
@@ -529,10 +594,11 @@ private:
     sensor.precipitation_type_ = (PrecipitationType)evt[12].number_value();
     sensor.wind_sample_interval_ = evt[13].number_value();
 
-    return (UdpEvent::SKY);
+    sensor.event_count_observation_++;
+    return (1);
   }
 
-  // Tempest Observation -----------------------------------------
+  // Tempest Observation ---------------------------------------
   //
   // {
   //   "serial_number":"ST-00000512",
@@ -540,24 +606,24 @@ private:
   //   "hub_sn":"HB-00013030",
   //   "obs":[
   //     [
-  //       1588948614,                                            epoch
-  //       0.18,                                                  wind lull (minimum 3 second sample) (m/s)
-  //       0.22,                                                  wind avg (average over report interval) (m/s)
-  //       0.27,                                                  wind gust (maximum 3 second sample) (m/s)
-  //       144,                                                   wind direction (deg)
-  //       6,                                                     wind sample interval (seconds)
-  //       1017.57,                                               pressure (MB)
-  //       22.37,                                                 temperature (C)
-  //       50.26,                                                 humidity (%)
-  //       328,                                                   illuminance (Lux)
-  //       0.03,                                                  uv (Index)
-  //       3,                                                     solar radiation (W/m^2)
-  //       0.000000,                                              precipitation accumulated (mm)
-  //       0,                                                     precipitation type	(0 = none, 1 = rain, 2 = hail)
-  //       0,                                                     lightning strike avg distance (km)
-  //       0,                                                     lightning strike count
-  //       2.410,                                                 battery (V)
-  //       1                                                      report interval (minutes)
+  //       1588948614,                                          epoch
+  //       0.18,                                                wind lull (minimum 3 second sample) (m/s)
+  //       0.22,                                                wind avg (average over report interval) (m/s)
+  //       0.27,                                                wind gust (maximum 3 second sample) (m/s)
+  //       144,                                                 wind direction (deg)
+  //       6,                                                   wind sample interval (seconds)
+  //       1017.57,                                             pressure (MB)
+  //       22.37,                                               temperature (C)
+  //       50.26,                                               humidity (%)
+  //       328,                                                 illuminance (Lux)
+  //       0.03,                                                uv (Index)
+  //       3,                                                   solar radiation (W/m^2)
+  //       0.000000,                                            precipitation accumulated (mm)
+  //       0,                                                   precipitation type	(0 = none, 1 = rain, 2 = hail)
+  //       0,                                                   lightning strike avg distance (km)
+  //       0,                                                   lightning strike count
+  //       2.410,                                               battery (V)
+  //       1                                                    report interval (minutes)
   //     ]
   //   ],
   //   "firmware_revision":129
@@ -566,7 +632,7 @@ private:
   // "{\"serial_number\":\"ST-00000512\",\"type\":\"obs_st\",\"hub_sn\":\"HB-00013030\",\"obs\":[[1588948614,0.18,0.22,0.27,144,6,1017.57,22.37,50.26,328,0.03,3,0.000000,0,0,0,2.410,1]],\"firmware_revision\":129}"
   //
 
-  UdpEvent UdpTempestObservation(const Json& event, int idx, size_t& size) {
+  size_t UdpTempestObservation(const Json& event, int idx, size_t& size) {
     // first call with idx = 0
 
     Sensor& sensor = GetHub(HubId(event)).GetSensor(SensorId(event));
@@ -574,7 +640,7 @@ private:
     // we should have a vector of observation
     const Json::array& obs = event["obs"].array_items();
     size = obs.size();
-    if (idx >= size) return (UdpEvent::INVALID);
+    if (idx >= size) return (0);
 
     sensor.version_ = DeviceVersion(event);
     const Json::array& evt = obs[idx].array_items();
@@ -598,29 +664,30 @@ private:
     sensor.battery_ = evt[16].number_value();
     sensor.report_interval_ = evt[17].number_value();
 
-    return (UdpEvent::TEMPEST);
+    sensor.event_count_observation_++;
+    return (1);
   }
 
-  // Device Status -----------------------------------------------
+  // Device Status ---------------------------------------------
   //
   // {
   //   "serial_number":"AR-00004049",
   //   "type":"device_status",
   //   "hub_sn":"HB-00000001",
   //   "timestamp":1510855923,
-  //   "uptime":2189,                                             device uptime (seconds)
-  //   "voltage":3.50,                                            battery (V)
+  //   "uptime":2189,                                           device uptime (seconds)
+  //   "voltage":3.50,                                          battery (V)
   //   "firmware_revision":17,
-  //   "rssi":-17,                                                device RSSI (dB)
-  //   "hub_rssi":-87,                                            hub RSSI (dB)
-  //   "sensor_status":0,                                         sensor status (bitfield)
-  //   "debug":0                                                  debug state (bool)
+  //   "rssi":-17,                                              device RSSI (dB)
+  //   "hub_rssi":-87,                                          hub RSSI (dB)
+  //   "sensor_status":0,                                       sensor status (bitfield)
+  //   "debug":0                                                debug state (bool)
   // }
   //
   // "{\"serial_number\":\"AR-00004049\",\"type\":\"device_status\",\"hub_sn\":\"HB-00000001\",\"timestamp\":1510855923,\"uptime\":2189,\"voltage\":3.50,\"firmware_revision\":17,\"rssi\":-17,\"hub_rssi\":-87,\"sensor_status\":0,\"debug\":0}"
   //
 
-  UdpEvent UdpDeviceStatus(const Json& event) {
+  size_t UdpDeviceStatus(const Json& event) {
     Hub& hub = GetHub(HubId(event));
 
     hub.last_update_ = event["timestamp"].number_value();
@@ -636,33 +703,34 @@ private:
     sensor.status_ = event["sensor_status"].number_value();
     sensor.debug_ = event["debug"].number_value();
 
-    return (UdpEvent::DEVICE);
+    sensor.event_count_status_++;
+    return (1);
   }
 
-  // Hub Status --------------------------------------------------
+  // Hub Status ------------------------------------------------
   //
   // {
   //   "serial_number":"HB-00000001",
   //   "type":"hub_status",
   //   "firmware_revision":"35",
-  //   "uptime":1670133,                                          hub uptime (seconds)
-  //   "rssi":-62,                                                hub RSSI (dB)
+  //   "uptime":1670133,                                        hub uptime (seconds)
+  //   "rssi":-62,                                              hub RSSI (dB)
   //   "timestamp":1495724691,
-  //   "reset_flags":"BOR,PIN,POR",                               see tempest::ResetFlags
-  //   "seq":48,                                                  undocumented
-  //   "fs":[                                                     undocumented
+  //   "reset_flags":"BOR,PIN,POR",                             see tempest::ResetFlags
+  //   "seq":48,                                                undocumented
+  //   "fs":[                                                   undocumented
   //     1,
   //     0,
   //     15675411,
   //     524288
   //   ],
   //   "radio_stats":[
-  //     2,                                                       version
-  //     1,                                                       reboot count
-  //     0,                                                       I2C bus error count
-  //     3                                                        0b00) Off, 0b01) On, 0b11) Active
+  //     2,                                                     version
+  //     1,                                                     reboot count
+  //     0,                                                     I2C bus error count
+  //     3                                                      0b00) Off, 0b01) On, 0b11) Active
   //   ],
-  //   "mqtt_stats":[                                             undocumented
+  //   "mqtt_stats":[                                           undocumented
   //     1,
   //     0
   //   ]
@@ -671,7 +739,7 @@ private:
   // "{\"serial_number\":\"HB-00000001\",\"type\":\"hub_status\",\"firmware_revision\":\"35\",\"uptime\":1670133,\"rssi\":-62,\"timestamp\":1495724691,\"reset_flags\":\"BOR,PIN,POR\",\"seq\":48,\"fs\":[1,0,15675411,524288],\"radio_stats\":[2,1,0,3],\"mqtt_stats\":[1,0]}"
   //
 
-  UdpEvent UdpHubStatus(const Json& event) {
+  size_t UdpHubStatus(const Json& event) {
     Hub& hub = GetHub(SensorId(event));
 
     hub.version_ = DeviceVersion(event);
@@ -699,11 +767,18 @@ private:
     hub.mqtt_[0] = mqtt[0].number_value();
     hub.mqtt_[1] = mqtt[1].number_value();
 
-    return (UdpEvent::HUB);
+    hub.event_count_status_++;
+    return (1);
   }
 
+  const time_t start_time_;
   const size_t queue_max_;
+
   vector<Hub> hub_;
+
+  uint event_count_invalid_;                                    // stats
+  uint event_count_unknown_;                                    // stats
+  uint event_count_debug_;                                      // stats
 };
 
 

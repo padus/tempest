@@ -24,21 +24,22 @@ using namespace std;
 
 class Relay: Tempest {
 public:
+  // -----------------------------------------------------------
 
   Relay(const string& url, Arguments::DataFormat format, int interval, int port = 50222, int buffer_max = 1024, int queue_max = 128, int io_timeout = 1):
     Tempest(queue_max), url_{url}, format_{format}, interval_{interval? (interval * 60): 60}, port_{port}, buffer_max_{buffer_max}, io_timeout_{io_timeout} {}
 
-  inline bool Stop(void) { return (Exit()); }
+  // -----------------------------------------------------------
+
+  inline void Stop(void) { Exit(); }
+
+  // -----------------------------------------------------------
 
   int Receiver() {
     int err = EXIT_SUCCESS;
     int sock = -1;
 
-    //--------------------------
-
     bool trace = (url_.empty() && format_ == Arguments::DataFormat::JSON);
-
-    // -------------------------
 
     try {
       LOG_INFO << "Receiver started.";  
@@ -65,7 +66,7 @@ public:
       struct sockaddr_in receive_addr;
       socklen_t receive_addr_len = sizeof(receive_addr);
       char receive_buffer[buffer_max_];                         // buffer for received data
-      int receive_len;                                          // length of received data
+      size_t receive_len;                                       // length of received data
 
       struct timeval receive_to;
       receive_to.tv_sec = io_timeout_;
@@ -103,12 +104,12 @@ public:
           receive_buffer[receive_len] = '\0';
 
           if (trace) {
-            // trace only
+            // trace
             cout << receive_buffer << endl;
           }
           else {
             // write data to tempest
-            Write(receive_buffer);
+            Write(receive_buffer, receive_len);
           }
         }
       }
@@ -119,31 +120,37 @@ public:
     }
 
     if (sock != -1) close(sock);
-    Exit();
+    Exit(true);
     LOG_INFO << "Receiver ended with error = " << err << ".";  
 
     return (err);
   }
 
+  // -----------------------------------------------------------
+
   int Transmitter() {
     int err = EXIT_SUCCESS;
 
-    //--------------------------
-
     bool trace = url_.empty() && format_ != Arguments::DataFormat::JSON;
-
-    // -------------------------
 
     try {
       LOG_INFO << "Trasmitter started.";  
 
+      string data;
       while (Continue()) {
+        if (Read(data)) {
 
-        Read(interval_);
-
-        //
-        // Curl data
-        //
+          if (trace) {
+            // trace
+            cout << data << endl;
+            //cout << Stats();
+          }
+          else {
+            //
+            // curl data
+            //
+          }
+        }
       }
     }
     catch (exception const & ex) {
@@ -158,58 +165,80 @@ public:
 
 private:
 
-  bool Exit(void) {
-    scoped_lock<mutex> lock{tempest_access_};
+  // -----------------------------------------------------------
 
+  void Exit(bool notify = false) { 
+    
     exit_ = true;
 
-    // wake up the transmitter if he's sleeping
-    transmitter_wakeup_.notify_one(); 
+    if (notify) {
+      // wake up the transmitter if he's sleeping
+      scoped_lock<mutex> lock{tempest_access_};
 
-    return (true);    
+      transmitter_.notify_one();
+    }
   }
+
+  // -----------------------------------------------------------
 
   inline bool Continue(void) { return (!exit_); }
 
-  bool Write(const char udp[]) {
-    // write data to tempest
+  // -----------------------------------------------------------
+  
+  string Stats(void) {
+    //
+    // return tempest data structure statistics
+    //
     scoped_lock<mutex> lock{tempest_access_};
 
-    size_t obs;
-    UdpEvent id = WriteUdp(udp, obs);
-    if (id == UdpEvent::UNRECOGNIZED) LOG_WARN << "Unrecognized UDP event: " << udp;
-    if (id == UdpEvent::INVALID) LOG_ERROR << "Invalid or malformed UDP event: " << udp;
-
-    return (true);
+    return (StatsUdp());
   }
 
-  bool Read(int interval) {
-    // read data from tempest
+  // -----------------------------------------------------------
+
+  size_t Write(const char data[], size_t data_len) {
+    //
+    // return the number of events/observation written to tempest
+    // or -1 if error
+    //
+    scoped_lock<mutex> lock{tempest_access_};
+
+    bool notify = false;
+
+    size_t events = WriteUdp(data, data_len, notify); 
+
+    // wake up the transmitter if he's sleeping
+    if (notify) transmitter_.notify_one(); 
+
+    return (events);
+  }
+
+  // -----------------------------------------------------------
+
+  bool Read(string& data) {
+    //
+    // return true if something was read
+    //
     unique_lock<mutex> lock{tempest_access_};
 
-    transmitter_wakeup_.wait_for(lock, chrono::seconds(interval));
+    transmitter_.wait_for(lock, chrono::seconds(interval_));
     // == cv_status::timeout
 
-    //
-    // access tempest
-    //
-
-    PrintStats();
-
-
-    return (true);
+    return ((format_ == Arguments::DataFormat::REST)? ReadREST(data): ReadEcowitt(data));
   }
 
-  condition_variable transmitter_wakeup_;
+  // -----------------------------------------------------------
+
+  condition_variable transmitter_;
   mutex tempest_access_;
-  bool exit_{false};
+  atomic<bool> exit_{false};
 
   const int buffer_max_;
   const int io_timeout_;
   const int port_;
   const string url_;
   const Arguments::DataFormat format_;
-  const int interval_;
+  const int interval_;                                          // in seconds
 };
 
 } // namespace tempest

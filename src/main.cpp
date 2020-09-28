@@ -12,6 +12,7 @@
 #include <system.hpp>
 
 #include "args.hpp"
+#include "convert.hpp"
 #include "tempest.hpp"
 #include "relay.hpp"
 

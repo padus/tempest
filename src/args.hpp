@@ -10,11 +10,11 @@
 #ifndef TEMPEST_ARGUMENTS
 #define TEMPEST_ARGUMENTS
 
-// Includes -------------------------------------------------------------------------------------------------------------------
+// Includes --------------------------------------------------------------------------------------------------------------------
 
 #include "system.hpp"
 
-// Source ---------------------------------------------------------------------------------------------------------------------
+// Source ----------------------------------------------------------------------------------------------------------------------
 
 // Argument presence
 
@@ -58,67 +58,15 @@ using namespace std;
 class Arguments {
 public:
 
+  // -----------------------------------------------------------
+
   enum DataFormat {
     JSON = 0,
     REST = 1,
     ECOWITT = 2
   };
 
-private:
-
-  static const char* usage_[];                                  // see initialization below
-  static const struct option option_[];                         // see initialization below 
-
-  static bool FormatNum2Enum(int num, DataFormat& format) {
-    const DataFormat format_native[3]{DataFormat::JSON, DataFormat::REST, DataFormat::ECOWITT};
-
-    if (num < 1 || num > 2) return (false);
-    format = format_native[num];
-    return (true);
-  }
-
-  static bool LogNum2Enum(int num, LogLevel& log) {
-    const LogLevel log_native[5]{LogLevel::OFF, LogLevel::ERROR, LogLevel::WARN, LogLevel::INFO, LogLevel::DEBUG};
-
-    if (num < 1 || num > 4) return (false);
-    log = log_native[num];
-    return (true);
-  }
-
-  string url_;
-  DataFormat format_;
-  int interval_;
-  LogLevel log_;
-
-  int format_num_;
-  int log_num_;
-
-  int cmdl_;
-
-  static string Trim(const char* str) {
-    //  
-    // remove leading "=" and leading and trailing spaces
-    //
-    if (!str) str = "";
-           
-    return (regex_replace(str, regex("^[=\\s\\t]+|[\\s\\t]+$"), ""));
-  }
-
-  static string ShortOptions(void) {
-    //
-    // build getopt_long() short options from long options data structure
-    //
-    string opt = "-";
-
-    for (int idx = 0; option_[idx].name; idx++) {
-      opt += option_[idx].val;
-      if (option_[idx].has_arg) opt += ':';
-    } 
-
-    return (opt);
-  }
-
-public:
+  // -----------------------------------------------------------
 
   static void PrintCommandLine(int argc, char* const argv[], string& str) {
     //
@@ -133,6 +81,8 @@ public:
     str = text.str();
   }
 
+  // -----------------------------------------------------------
+
   static void PrintUsage(string& str) {
     //
     // print usage based on an array of strings
@@ -143,6 +93,8 @@ public:
     str = text.str();
   }
 
+  // -----------------------------------------------------------
+
   Arguments(int argc, char* const argv[]) {
     //
     // Parse the command line and verify its syntax and semantics validity
@@ -150,12 +102,9 @@ public:
 
     // initialize options to default state
     url_ = "";
-    format_ = DataFormat::REST;
+    format_ = 1;
     interval_ = 1;
-    log_ = LogLevel::INFO;
-
-    format_num_ = 1;
-    log_num_ = 3;
+    log_ = 3;
 
     cmdl_ = 0;
   
@@ -182,8 +131,8 @@ public:
 
           case 'f':
             num = stoi(arg);
-            if (!FormatNum2Enum(num, format_)) throw out_of_range(arg);
-            format_num_ = num;
+            if (num < 1 || num > 2) throw out_of_range(arg);
+            format_ = num;
 
             cmdl_ |= TEMPEST_ARG_FORMAT;
             break;
@@ -198,8 +147,8 @@ public:
 
           case 'l':
             num = stoi(arg);
-            if (!LogNum2Enum(num, log_)) throw out_of_range(arg);
-            log_num_ = num;
+            if (num < 1 || num > 4) throw out_of_range(arg);
+            log_ = num;
 
             cmdl_ |= TEMPEST_ARG_LOG;
             break;
@@ -241,9 +190,8 @@ public:
         if (TEMPEST_INV_TRACE(cmdl_)) throw invalid_argument("trace");
 
         if (TEMPEST_UDP_TRACE(cmdl_)) {
-          format_ = DataFormat::JSON;
+          format_ = 0;
           interval_ = 0;
-          format_num_ = 0;
         }
       }
       else if (TEMPEST_REQ_STOP(cmdl_)) {
@@ -270,12 +218,16 @@ public:
     }
   }
 
+  // -----------------------------------------------------------
+
   bool IsCommandLineInvalid(void) const {
     //
     // Return whether the command line is invalid or not
     //
     return (cmdl_ & TEMPEST_ARG_INVALID);
   }
+
+  // -----------------------------------------------------------
 
   bool IsCommandLineEmpty(void) const {
     //
@@ -284,6 +236,8 @@ public:
     return (cmdl_ & TEMPEST_ARG_EMPTY);
   }
 
+  // -----------------------------------------------------------
+
   bool IsCommandRelay(string& url, DataFormat& format, int& interval, LogLevel& log, bool& daemon, string& str) const {
     //
     // Return whether the relay command was invoked and all its parameters 
@@ -291,22 +245,24 @@ public:
     if (TEMPEST_INV_RELAY(cmdl_)) return (false);
     
     url = url_;
-    format = format_;
+    format = FormatNum2Enum(format_);
     interval = interval_;
-    log = log_;
+    log = LogNum2Enum(log_);
     daemon = cmdl_ & TEMPEST_ARG_DAEMON;
 
     ostringstream text{""};
 
     text << "tempest --url=" << url_;
-    text << " --format=" << format_num_;
+    text << " --format=" << format_;
     text << " --interval=" << interval_;    
-    text << " --log=" << log_num_;
+    text << " --log=" << log_;
     if (daemon) text << " --daemon";
     str = text.str();
 
     return (true);
   }
+
+  // -----------------------------------------------------------
 
   bool IsCommandTrace(DataFormat& format, int& interval, LogLevel& log, string& str) const {
     //
@@ -314,20 +270,22 @@ public:
     //
     if (TEMPEST_INV_TRACE(cmdl_)) return (false);
     
-    format = format_;
+    format = FormatNum2Enum(format_);
     interval = interval_;
-    log = log_;
+    log = LogNum2Enum(log_);
     
     ostringstream text{""};
     
     text << "tempest --trace";
-    text << " --format=" << format_num_;
+    text << " --format=" << format_;
     text << " --interval=" << interval_;    
-    text << " --log=" << log_num_;
+    text << " --log=" << log_;
     str = text.str();
 
     return (true);
   }
+
+  // -----------------------------------------------------------
 
   bool IsCommandStop(string& str) const {
     //
@@ -340,6 +298,8 @@ public:
     return (true);
   }
 
+  // -----------------------------------------------------------
+
   bool IsCommandVersion(string& str) const {
     //
     // Return whether the version command was invoked 
@@ -351,6 +311,8 @@ public:
     return (true);
   }
 
+  // -----------------------------------------------------------
+
   bool IsCommandHelp(string& str) const {
     //
     // Return whether the help command was invoked 
@@ -361,6 +323,65 @@ public:
 
     return (true);
   }
+
+ private:
+
+  // -----------------------------------------------------------
+  
+  static DataFormat FormatNum2Enum(int num) {
+    const DataFormat format_native[3]{DataFormat::JSON, DataFormat::REST, DataFormat::ECOWITT};
+
+    assert(num >= 0 && num <= 2);
+    return (format_native[num]);
+  }
+
+  // -----------------------------------------------------------
+
+  static LogLevel LogNum2Enum(int num) {
+    const LogLevel log_native[5]{LogLevel::OFF, LogLevel::ERROR, LogLevel::WARN, LogLevel::INFO, LogLevel::DEBUG};
+
+    assert(num >= 0 && num <= 4);
+    return (log_native[num]);
+  }
+
+  // -----------------------------------------------------------
+
+  static string Trim(const char* str) {
+    //  
+    // remove leading "=" and leading and trailing spaces
+    //
+    if (!str) str = "";
+           
+    return (regex_replace(str, regex("^[=\\s\\t]+|[\\s\\t]+$"), ""));
+  }
+
+  // -----------------------------------------------------------
+
+  static string ShortOptions(void) {
+    //
+    // build getopt_long() short options from long options data structure
+    //
+    string opt = "-";
+
+    for (int idx = 0; option_[idx].name; idx++) {
+      opt += option_[idx].val;
+      if (option_[idx].has_arg) opt += ':';
+    } 
+
+    return (opt);
+  }
+
+  // -----------------------------------------------------------
+
+  static const char* usage_[];                                  // see initialization below
+  static const struct option option_[];                         // see initialization below 
+
+  string url_;
+  int format_;
+  int interval_;
+  int log_;
+
+  int cmdl_;
 };
 
 // Static Initialization ------------------------------------------------------------------------------------------------------
