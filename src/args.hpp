@@ -19,6 +19,10 @@
 
 // Source ----------------------------------------------------------------------------------------------------------------------
 
+namespace tempest {
+
+using namespace std;
+
 // Argument presence
 
 #define TEMPEST_ARG_URL         0b0000000000000001
@@ -53,10 +57,6 @@
 #define TEMPEST_INV_STOP(c)     (c & ~(TEMPEST_ARG_STOP))
 #define TEMPEST_INV_VERSION(c)  (c & ~(TEMPEST_ARG_VERSION))
 #define TEMPEST_INV_HELP(c)     (c & ~(TEMPEST_ARG_HELP | TEMPEST_ARG_EMPTY))
-
-namespace tempest {
-
-using namespace std;
 
 class Arguments {
 public:
@@ -222,7 +222,7 @@ public:
     return (cmdl_ & TEMPEST_ARG_EMPTY);
   }
 
-  inline log_level GetLogLevel(void) const {
+  inline Log::Level GetLogLevel(void) const {
     //
     // Return the log level: if --log was not specified we return default
     //
@@ -322,8 +322,8 @@ public:
     return (format_native[num]);
   }
 
-  static log_level LogNum2Enum(int num) {
-    const log_level log_native[5]{log_level::emergency, log_level::error, log_level::warning, log_level::info, log_level::debug};
+  static Log::Level LogNum2Enum(int num) {
+    const Log::Level log_native[5]{Log::Level::emergency, Log::Level::error, Log::Level::warning, Log::Level::info, Log::Level::debug};
 
     assert(num >= 0 && num <= 4);
     return (log_native[num]);

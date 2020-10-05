@@ -5,6 +5,7 @@
 // Repository:  https://github.com/mircolino/tempest
 //
 // Description: Tempest data codec
+// API:         https://weatherflow.github.io/SmartWeather/api/udp.html
 //
 
 #ifndef TEMPEST_CODEC
@@ -586,7 +587,7 @@ public:
     return (stats.str());
   }
 
-  size_t WriteUdp(log_stream& log, const char udp[], size_t udp_len, bool& notify) {
+  size_t WriteUdp(Log& log, const char udp[], size_t udp_len, bool& notify) {
     //
     // Return the number of events/observation written to tempest
     // or 0 if error/debug/unrecognized
@@ -646,7 +647,7 @@ public:
     return (obs);
   }
 
-  size_t ReadEcowitt(log_stream& log, vector<string>& data) {
+  size_t ReadEcowitt(Log& log, vector<string>& data) {
     //
     // Return the number of events/observation read from tempest
     // or 0 if error
@@ -725,7 +726,7 @@ public:
     return (data.size());
   }
 
-  size_t ReadREST(log_stream& log, vector<string>& data) {
+  size_t ReadREST(Log& log, vector<string>& data) {
     //
     // Return the number of events/observation read from tempest
     // or 0 if error

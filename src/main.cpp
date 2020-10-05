@@ -19,7 +19,7 @@
 
 // Source ---------------------------------------------------------------------------------------------------------------------
 
-#define TEMPEST_VERSION         "v1.0.36-beta"
+#define TEMPEST_VERSION         "v1.0.37-beta"
 
 using namespace std;
 using namespace tempest;
@@ -81,11 +81,11 @@ int main(int argc, char* const argv[]) {
   // Parse command line
   Arguments args = Arguments(argc, argv);
 
-  log_facility facility = args.IsCommandDaemon()? log_facility::daemon: log_facility::user;
-  log_level level = args.GetLogLevel();
+  Log::Facility facility = args.IsCommandDaemon()? Log::Facility::daemon: Log::Facility::user;
+  Log::Level level = args.GetLogLevel();
 
   // Initialize a log stream
-  log_stream log{facility, level};
+  Log log{facility, level};
 
   try {
     string text;
@@ -120,7 +120,7 @@ int main(int argc, char* const argv[]) {
       // Start trasmitting or tracing (if url is empty)
       //
 
-      if (args.IsCommandDaemon() && ::daemon(0,0) != EXIT_SUCCESS) {
+      if (args.IsCommandDaemon() && daemon(0,0) != EXIT_SUCCESS) {
         TLOG_ERROR(log) << "Error demonizing the process." << endl;
         throw runtime_error("daemon()");
       }

@@ -32,7 +32,7 @@ public:
     ECOWITT = 2
   };
 
-  Relay(const string& url, Format format, int interval, log_facility facility, log_level level, int port = 50222, int buffer_max = 1024, int queue_max = 128, int io_timeout = 1):
+  Relay(const string& url, Format format, int interval, Log::Facility facility, Log::Level level, int port = 50222, int buffer_max = 1024, int queue_max = 128, int io_timeout = 1):
     Tempest(queue_max), url_{url}, format_{format}, interval_{interval? (interval * 60): 60}, facility_{facility}, level_{level}, port_{port}, buffer_max_{buffer_max}, io_timeout_{io_timeout} {}
 
   inline void Stop(void) { Exit(); }
@@ -44,7 +44,7 @@ public:
     bool trace = (url_.empty() && format_ == Format::JSON);
 
     // Initialize log stream
-    log_stream log{facility_, level_};
+    Log log{facility_, level_};
 
     try {
       TLOG_INFO(log) << "Receiver started." << endl;
@@ -135,7 +135,7 @@ public:
     int err = EXIT_SUCCESS;
 
     // Initialize log
-    log_stream log{facility_, level_};
+    Log log{facility_, level_};
 
     bool trace = url_.empty() && format_ != Format::JSON;
 
@@ -259,7 +259,7 @@ private:
     return (StatsUdp());
   }
 
-  size_t Write(log_stream& log, const char data[], size_t data_len) {
+  size_t Write(Log& log, const char data[], size_t data_len) {
     //
     // Return the number of events/observation written to tempest
     // or 0 if error/debug/unrecognized
@@ -276,7 +276,7 @@ private:
     return (event);
   }
 
-  size_t Read(log_stream& log, vector<string>& data) {
+  size_t Read(Log& log, vector<string>& data) {
     //
     // Return the number of events/observation read from tempest
     // or 0 if error
@@ -299,8 +299,8 @@ private:
   const string url_;
   const Format format_;
   const int interval_;                                          // in seconds
-  const log_level level_;
-  const log_facility facility_;
+  const Log::Level level_;
+  const Log::Facility facility_;
 };
 
 } // namespace tempest
