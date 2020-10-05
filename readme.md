@@ -10,6 +10,7 @@ A fast and efficient UDP relay service designed to receive WeatherFlow Tempest l
 - Entirely written in C++ with no dependencies, external libraries or additional packages to install.
 - Small, fast, efficient and highly asynchronous with non-blocking I/O and multithreaded queue.
 - Designed to leverage existing Hubitat driver infrastructure by emulating WeatherFlow REST API or Ecowitt protocols.
+- Support for multiple Tempest stations
 
 ## Installation Instructions
 
@@ -45,25 +46,25 @@ A fast and efficient UDP relay service designed to receive WeatherFlow Tempest l
 
   -u | --url=<url>      full URL to relay data to
   -f | --format=<fmt>   format to which the UDP data is repackaged:
-                        0) JSON untranslated, 1) REST API, 2) Ecowitt
-                        (default if omitted: 1)
+                        1) REST API, 2) Ecowitt (default if omitted: 2)
   -i | --interval=<min> interval in minutes at which data is relayed:
-                        0 <= min <= 30 (default if omitted: 1, 0 only
-                        permitted when: tempest --trace --format=0)
-  -l | --log=<lev>      0) only errors
-                        1) errors and warnings
-                        2) errors, warnings and info (default if omitted)
-                        3) errors, warnings, info and debug (everything)
-  -d | --daemon         run as a service
+                        1 <= min <= 30 (default if omitted: 5)
+  -l | --log=<lev>      1) only errors
+                        2) errors and warnings
+                        3) errors, warnings and info (default if omitted)
+                        4) errors, warnings, info and debug (everything)
+  -d | --daemon         run as a background daemon
   -t | --trace          relay data to the terminal standard output
+                        (if both --format and --interval are omitted
+                        the source UDP JSON will be traced instead)
   -s | --stop           stop relaying/tracing and exit gracefully
   -v | --version        print version information
   -h | --help           print this help
 
   Examples:
 
-  tempest --url=http://hubitat.local:39501 --format=2 --interval=5
-  tempest -u=192.168.1.100:39500 -l=1 -d
+  tempest --url=http://hubitat.local:39501 --format=2 --interval=5 --daemon
+  tempest -u=192.168.1.100:39500 -l=2 -d
   tempest --stop
   ```
 

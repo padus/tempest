@@ -29,6 +29,8 @@ OBJ := $(CPP:$(SRC)/%.cpp=$(BLD)/%.o)
 LIB := -lstdc++fs -lcurl
 EXE := $(BLD)/tempest
 
+WRN := -Wpedantic -Wall -Wextra -Weffc++
+
 CXX_RELEASE := g++ -std=c++17 -pthread -I$(SRC) -DNDEBUG -DTEMPEST_RELEASE -O3
 CXX_DEBUG := g++ -std=c++17 -pthread -I$(BLD) -I$(SRC) -DTEMPEST_DEBUG -ggdb
 

@@ -1,5 +1,5 @@
 //
-// App:         WeatherFlow Tempest UDP Relay 
+// App:         WeatherFlow Tempest UDP Relay
 // Author:      Mirco Caramori
 // Copyright:   (c) 2020 Mirco Caramori
 // Repository:  https://github.com/mircolino/tempest
@@ -13,6 +13,9 @@
 // Includes --------------------------------------------------------------------------------------------------------------------
 
 #include "system.hpp"
+
+#include "log.hpp"
+#include "relay.hpp"
 
 // Source ----------------------------------------------------------------------------------------------------------------------
 
@@ -58,19 +61,9 @@ using namespace std;
 class Arguments {
 public:
 
-  // -----------------------------------------------------------
-
-  enum DataFormat {
-    JSON = 0,
-    REST = 1,
-    ECOWITT = 2
-  };
-
-  // -----------------------------------------------------------
-
   static void PrintCommandLine(int argc, char* const argv[], string& str) {
     //
-    // print original command line
+    // Print original command line
     //
     ostringstream text{""};
 
@@ -81,11 +74,9 @@ public:
     str = text.str();
   }
 
-  // -----------------------------------------------------------
-
   static void PrintUsage(string& str) {
     //
-    // print usage based on an array of strings
+    // Print usage based on an array of strings
     //
     ostringstream text{""};
 
@@ -93,29 +84,28 @@ public:
     str = text.str();
   }
 
-  // -----------------------------------------------------------
-
   Arguments(int argc, char* const argv[]) {
     //
     // Parse the command line and verify its syntax and semantics validity
     //
 
-    // initialize options to default state
+    // Initialize options to default state
     url_ = "";
-    format_ = 1;
-    interval_ = 1;
+    format_ = 2;
+    interval_ = 5;
     log_ = 3;
 
     cmdl_ = 0;
-  
+
     try {
       //
-      // check command line syntax
+      // Check command line syntax
       //
       int value, num;
       string arg, option_short;
 
-      opterr = 0;               // silence getopt_long()
+      // Silence getopt_long()
+      opterr = 0;
       option_short = ShortOptions();
 
       while ((value = getopt_long(argc, argv, option_short.c_str(), option_, nullptr)) != -1) {
@@ -158,35 +148,35 @@ public:
             break;
 
           case 't':
-            cmdl_ |= TEMPEST_ARG_TRACE; 
+            cmdl_ |= TEMPEST_ARG_TRACE;
             break;
 
           case 's':
-            cmdl_ |= TEMPEST_ARG_STOP;     
+            cmdl_ |= TEMPEST_ARG_STOP;
             break;
 
           case 'v':
-            cmdl_ |= TEMPEST_ARG_VERSION;      
+            cmdl_ |= TEMPEST_ARG_VERSION;
             break;
 
           case 'h':
-            cmdl_ |= TEMPEST_ARG_HELP;  
+            cmdl_ |= TEMPEST_ARG_HELP;
             break;
 
           default:
             throw invalid_argument(arg);
         }
       }
-    
+
       //
-      // check command line semantics
+      // Check command line semantics
       //
       if (TEMPEST_REQ_RELAY(cmdl_)) {
-        // relay command
+        // Relay command
         if (TEMPEST_INV_RELAY(cmdl_)) throw invalid_argument("relay");
       }
       else if (TEMPEST_REQ_TRACE(cmdl_)) {
-        // trace command
+        // Trace command
         if (TEMPEST_INV_TRACE(cmdl_)) throw invalid_argument("trace");
 
         if (TEMPEST_UDP_TRACE(cmdl_)) {
@@ -195,30 +185,28 @@ public:
         }
       }
       else if (TEMPEST_REQ_STOP(cmdl_)) {
-        // stop command
+        // Stop command
         if (TEMPEST_INV_STOP(cmdl_)) throw invalid_argument("stop");
       }
       else if (TEMPEST_REQ_VERSION(cmdl_)) {
-        // version command
+        // Version command
         if (TEMPEST_INV_VERSION(cmdl_)) throw invalid_argument("version");
       }
       else if (TEMPEST_REQ_HELP(cmdl_)) {
-        // help command
+        // Help command
         if (TEMPEST_INV_HELP(cmdl_)) throw invalid_argument("help");
       }
       else {
-        // empty command line
+        // Empty command line
         if (cmdl_) throw invalid_argument("invalid command");
         cmdl_ |= TEMPEST_ARG_EMPTY;
       }
     }
     catch (exception const & ex) {
-      // invalid command line
+      // Invalid command line
       cmdl_ |= TEMPEST_ARG_INVALID;
     }
   }
-
-  // -----------------------------------------------------------
 
   bool IsCommandLineInvalid(void) const {
     //
@@ -227,8 +215,6 @@ public:
     return (cmdl_ & TEMPEST_ARG_INVALID);
   }
 
-  // -----------------------------------------------------------
-
   bool IsCommandLineEmpty(void) const {
     //
     // Return whether the command line is empty or not
@@ -236,60 +222,67 @@ public:
     return (cmdl_ & TEMPEST_ARG_EMPTY);
   }
 
-  // -----------------------------------------------------------
-
-  bool IsCommandRelay(string& url, DataFormat& format, int& interval, LogLevel& log, bool& daemon, string& str) const {
+  inline log_level GetLogLevel(void) const {
     //
-    // Return whether the relay command was invoked and all its parameters 
+    // Return the log level: if --log was not specified we return default
+    //
+    return (LogNum2Enum(log_));
+  }
+
+  bool IsCommandDaemon(void) const {
+    //
+    // Return whether we are going to run as a daemon
     //
     if (TEMPEST_INV_RELAY(cmdl_)) return (false);
-    
+
+    return (cmdl_ & TEMPEST_ARG_DAEMON);
+  }
+
+  bool IsCommandRelay(string& url, Relay::Format& format, int& interval, string& str) const {
+    //
+    // Return whether the relay command was invoked and all its parameters
+    //
+    if (TEMPEST_INV_RELAY(cmdl_)) return (false);
+
     url = url_;
     format = FormatNum2Enum(format_);
     interval = interval_;
-    log = LogNum2Enum(log_);
-    daemon = cmdl_ & TEMPEST_ARG_DAEMON;
 
     ostringstream text{""};
 
     text << "tempest --url=" << url_;
     text << " --format=" << format_;
-    text << " --interval=" << interval_;    
+    text << " --interval=" << interval_;
     text << " --log=" << log_;
-    if (daemon) text << " --daemon";
+    if (IsCommandDaemon()) text << " --daemon";
     str = text.str();
 
     return (true);
   }
 
-  // -----------------------------------------------------------
-
-  bool IsCommandTrace(DataFormat& format, int& interval, LogLevel& log, string& str) const {
+  bool IsCommandTrace(Relay::Format& format, int& interval, string& str) const {
     //
-    // Return whether the trace command was invoked and all its parameters 
+    // Return whether the trace command was invoked and all its parameters
     //
     if (TEMPEST_INV_TRACE(cmdl_)) return (false);
-    
+
     format = FormatNum2Enum(format_);
     interval = interval_;
-    log = LogNum2Enum(log_);
-    
+
     ostringstream text{""};
-    
+
     text << "tempest --trace";
     text << " --format=" << format_;
-    text << " --interval=" << interval_;    
+    text << " --interval=" << interval_;
     text << " --log=" << log_;
     str = text.str();
 
     return (true);
   }
-
-  // -----------------------------------------------------------
 
   bool IsCommandStop(string& str) const {
     //
-    // Return whether the stop command was invoked 
+    // Return whether the stop command was invoked
     //
     if (TEMPEST_INV_STOP(cmdl_)) return (false);
 
@@ -298,11 +291,9 @@ public:
     return (true);
   }
 
-  // -----------------------------------------------------------
-
   bool IsCommandVersion(string& str) const {
     //
-    // Return whether the version command was invoked 
+    // Return whether the version command was invoked
     //
     if (TEMPEST_INV_VERSION(cmdl_)) return (false);
 
@@ -311,14 +302,12 @@ public:
     return (true);
   }
 
-  // -----------------------------------------------------------
-
   bool IsCommandHelp(string& str) const {
     //
-    // Return whether the help command was invoked 
+    // Return whether the help command was invoked
     //
     if (TEMPEST_INV_HELP(cmdl_)) return (false);
-    
+
     str = "tempest [--help]";
 
     return (true);
@@ -326,55 +315,42 @@ public:
 
  private:
 
-  // -----------------------------------------------------------
-  
-  static DataFormat FormatNum2Enum(int num) {
-    const DataFormat format_native[3]{DataFormat::JSON, DataFormat::REST, DataFormat::ECOWITT};
+  static Relay::Format FormatNum2Enum(int num) {
+    const Relay::Format format_native[3]{Relay::Format::JSON, Relay::Format::REST, Relay::Format::ECOWITT};
 
     assert(num >= 0 && num <= 2);
     return (format_native[num]);
   }
 
-  // -----------------------------------------------------------
-
-  static LogLevel LogNum2Enum(int num) {
-    const LogLevel log_native[5]{LogLevel::OFF, LogLevel::ERROR, LogLevel::WARN, LogLevel::INFO, LogLevel::DEBUG};
+  static log_level LogNum2Enum(int num) {
+    const log_level log_native[5]{log_level::emergency, log_level::error, log_level::warning, log_level::info, log_level::debug};
 
     assert(num >= 0 && num <= 4);
     return (log_native[num]);
   }
 
-  // -----------------------------------------------------------
-
   static string Trim(const char* str) {
-    //  
-    // remove leading "=" and leading and trailing spaces
+    //
+    // Remove leading "=" and leading and trailing spaces
     //
     if (!str) str = "";
-           
+
     return (regex_replace(str, regex("^[=\\s\\t]+|[\\s\\t]+$"), ""));
   }
 
-  // -----------------------------------------------------------
-
   static string ShortOptions(void) {
     //
-    // build getopt_long() short options from long options data structure
+    // Build getopt_long() short options from long options data structure
     //
     string opt = "-";
 
     for (int idx = 0; option_[idx].name; idx++) {
       opt += option_[idx].val;
       if (option_[idx].has_arg) opt += ':';
-    } 
+    }
 
     return (opt);
   }
-
-  // -----------------------------------------------------------
-
-  static const char* usage_[];                                  // see initialization below
-  static const struct option option_[];                         // see initialization below 
 
   string url_;
   int format_;
@@ -382,19 +358,20 @@ public:
   int log_;
 
   int cmdl_;
+
+  static const char* const usage_[];                            // see initialization below
+  static const struct option option_[];                         // see initialization below
 };
 
-// Static Initialization ------------------------------------------------------------------------------------------------------
-
-const char* Arguments::usage_[] = {
+const char* const Arguments::usage_[] = {
   "Usage:        tempest [OPTIONS]",
   "",
   "Commands:",
-  "",    
+  "",
   "Relay:        tempest --url=<url> [--format=<fmt>] [--interval=<min>]",
   "                      [--log=<lev>] [--daemon]",
   "Trace:        tempest --trace [--format=<fmt>] [--interval=<min>]",
-  "                      [--log=<lev>]",  
+  "                      [--log=<lev>]",
   "Stop:         tempest --stop",
   "Version:      tempest --version",
   "Help:         tempest [--help]",
@@ -403,24 +380,24 @@ const char* Arguments::usage_[] = {
   "",
   "-u | --url=<url>      full URL to relay data to",
   "-f | --format=<fmt>   format to which the UDP data is repackaged:",
-  "                      1) REST API, 2) Ecowitt (default if omitted: 1)",
+  "                      1) REST API, 2) Ecowitt (default if omitted: 2)",
   "-i | --interval=<min> interval in minutes at which data is relayed:",
-  "                      1 <= min <= 30 (default if omitted: 1)",
+  "                      1 <= min <= 30 (default if omitted: 5)",
   "-l | --log=<lev>      1) only errors",
   "                      2) errors and warnings",
   "                      3) errors, warnings and info (default if omitted)",
   "                      4) errors, warnings, info and debug (everything)",
-  "-d | --daemon         run as a service",
+  "-d | --daemon         run as a background daemon",
   "-t | --trace          relay data to the terminal standard output",
   "                      (if both --format and --interval are omitted",
   "                      the source UDP JSON will be traced instead)",
-  "-s | --stop           stop relaying/tracing and exit gracefully", 
+  "-s | --stop           stop relaying/tracing and exit gracefully",
   "-v | --version        print version information",
   "-h | --help           print this help",
   "",
   "Examples:",
   "",
-  "tempest --url=http://hubitat.local:39501 --format=2 --interval=5",
+  "tempest --url=http://hubitat.local:39501 --format=2 --interval=5 --daemon",
   "tempest -u=192.168.1.100:39500 -l=2 -d",
   "tempest --stop",
   nullptr
@@ -431,10 +408,10 @@ const struct option Arguments::option_[] = {
   {"format",   required_argument, 0, 'f'},
   {"interval", required_argument, 0, 'i'},
   {"log",      required_argument, 0, 'l'},
-  {"daemon",   no_argument,       0, 'd'},   
-  {"trace",    no_argument,       0, 't'},    
+  {"daemon",   no_argument,       0, 'd'},
+  {"trace",    no_argument,       0, 't'},
   {"stop",     no_argument,       0, 's'},
-  {"version",  no_argument,       0, 'v'},    
+  {"version",  no_argument,       0, 'v'},
   {"help",     no_argument,       0, 'h'},
   {nullptr,    0,                 0, 0  }
 };

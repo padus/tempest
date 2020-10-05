@@ -1,5 +1,5 @@
 //
-// App:         WeatherFlow Tempest UDP Relay 
+// App:         WeatherFlow Tempest UDP Relay
 // Author:      Mirco Caramori
 // Copyright:   (c) 2020 Mirco Caramori
 // Repository:  https://github.com/mircolino/tempest
@@ -61,6 +61,12 @@ public:
 
   // -----------------------------------------------------------
 
+  inline static double ms_to_kmh(double val) {
+    return (val / 0.27777777777778);
+  }
+
+  // -----------------------------------------------------------// -----------------------------------------------------------
+
   inline static double ft_to_m(double val) {
     return (val / 3.28084);
   }
@@ -94,6 +100,20 @@ public:
   inline static double lux_to_Wm2(double val) {
     return (val * 0.0079);
   }
+
+  // -----------------------------------------------------------
+
+  inline static string epoch_to_dateutc(time_t epoch) {
+
+    char buf[128];
+    tm *ts = gmtime(&epoch);
+    strftime(buf, sizeof(buf), "%Y-%m-%d+%H:%M:%S", ts);
+
+    string date = buf;
+
+    return (date);
+  }
+
 };
 
 } // namespace tempest

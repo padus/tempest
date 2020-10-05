@@ -1,5 +1,5 @@
 //
-// App:         WeatherFlow Tempest UDP Relay 
+// App:         WeatherFlow Tempest UDP Relay
 // Author:      Mirco Caramori
 // Copyright:   (c) 2020 Mirco Caramori
 // Repository:  https://github.com/mircolino/tempest
@@ -15,8 +15,8 @@
 #include <iostream>
 #include <sstream>
 #include <fstream>
-
-#include <filesystem>
+#include <ostream>
+#include <streambuf>
 
 #include <cstdio>
 #include <ctime>
@@ -39,7 +39,7 @@
 #include <tuple>
 #include <atomic>
 #include <queue>
-#include <future>   
+#include <future>
 #include <mutex>
 #include <condition_variable>
 
@@ -49,16 +49,19 @@
 
 #include <getopt.h>
 
-#include <sys/types.h> 
-#include <sys/socket.h> 
-#include <arpa/inet.h> 
+#include <syslog.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
 #include <netinet/in.h>
-#include <unistd.h> 
+#include <unistd.h>
 #include <curl/curl.h>
+#include <dirent.h>
 
-// Libraries -------------------------------------------------------------------------------------------------------------------
+#include <signal.h>
 
-#include "log.hpp"
+// External Libraries ----------------------------------------------------------------------------------------------------------
+
 #include "json.hpp"
 
 // Source ----------------------------------------------------------------------------------------------------------------------

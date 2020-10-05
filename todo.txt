@@ -7,6 +7,7 @@
 # Description: things I need to do...
 #
 
-1) rewrite my own simplier logger
-2) demonize
-3) makerAPI interface
+- save precipitation accumulation to file at exit and reload it at start
+- demonize
+- makerAPI interface
+

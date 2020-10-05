@@ -9,7 +9,7 @@
       "type": "cppdbg",
       "request": "launch",
       "program": "${workspaceFolder}/build/tempestd",
-      "args": ["--url=http://hubitat.padus.com:39501"],
+      "args": ["--stop"],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
       "environment": [],
