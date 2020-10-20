@@ -13,7 +13,7 @@
 // 2020.09.21:  v0.1.1-alpha
 //              build functionally complete
 // 2020.10.05:  v1.0.36-beta
-//              rewrote alghoritm to calculate 10 minutes average wind speed and direction
+//              rewrote algorithm to calculate 10 minutes average wind speed and direction
 //              fixed a bug that would incorrectly reset rain event accumulation
 //              added IPC
 //              added relay statistics
