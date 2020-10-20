@@ -289,14 +289,14 @@ public:
   struct {
     struct tm track;            // time tracking
 
-    double precip_rate;
-    double precip_event;
-    double precip_hourly;
-    double precip_daily;
-    double precip_weekly;
-    double precip_monthly;
-    double precip_yearly;
-    double precip_total;
+    double precip_rate;         // mm/h
+    double precip_event;        // mm
+    double precip_hourly;       // mm
+    double precip_daily;        // mm
+    double precip_weekly;       // mm
+    double precip_monthly;      // mm
+    double precip_yearly;       // mm
+    double precip_total;        // mm
 
     double wind_direction;
     double wind_direction_avg10m;
@@ -344,22 +344,15 @@ public:
       }
 
       // Precipitation stats
-      precip_rate = span? ((3600 / span) * level): 0;
+      precip_event = precip_rate? (precip_event + level): level;
+      precip_hourly += level;
+      precip_daily += level;
+      precip_weekly += level;
+      precip_monthly += level;
+      precip_yearly += level;
+      precip_total += level;
 
-      if (level) {
-        // It's raining
-        precip_event += level;
-        precip_hourly += level;
-        precip_daily += level;
-        precip_weekly += level;
-        precip_monthly += level;
-        precip_yearly += level;
-        precip_total += level;
-      }
-      else {
-        // It's not raining
-        precip_event = 0;
-      }
+      precip_rate = span? ((3600 / span) * level): 0;
 
       // Wind stats
       wind_direction = direction;
@@ -374,14 +367,8 @@ public:
 
         wind_index = (wind_index + 1) % 10;
       }
-
-      wind_direction_avg10m = 0;
-      for (int i = 0; i < 10; i++) wind_direction_avg10m += wind_sample[0][i];
-      wind_direction_avg10m /= 10;
-
-      wind_speed_avg10m = 0;
-      for (int i = 0; i < 10; i++) wind_speed_avg10m += wind_sample[1][i];
-      wind_speed_avg10m /= 10;
+      
+      Convert::wind_vector_to_avg(wind_sample[0], wind_sample[1], 10, wind_direction_avg10m, wind_speed_avg10m);
     }
   }
   obs_stats_;

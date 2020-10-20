@@ -26,7 +26,8 @@ HPP := $(call rwildcard,$(SRC)/,*.hpp)
 CPP := $(call rwildcard,$(SRC)/,*.cpp)
 PCH := $(BLD)/system.hpp.gch
 OBJ := $(CPP:$(SRC)/%.cpp=$(BLD)/%.o)
-LIB := -lstdc++fs -lcurl
+# LIB := -lstdc++fs -lcurl -lrt
+LIB := -lcurl
 EXE := $(BLD)/tempest
 
 WRN := -Wpedantic -Wall -Wextra -Weffc++

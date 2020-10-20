@@ -32,8 +32,9 @@ using namespace std;
 #define TEMPEST_ARG_DAEMON      0b0000000000010000
 #define TEMPEST_ARG_TRACE       0b0000000000100000
 #define TEMPEST_ARG_STOP        0b0000000001000000
-#define TEMPEST_ARG_VERSION     0b0000000010000000
-#define TEMPEST_ARG_HELP        0b0000000100000000
+#define TEMPEST_ARG_STATS       0b0000000010000000
+#define TEMPEST_ARG_VERSION     0b0000000100000000
+#define TEMPEST_ARG_HELP        0b0000001000000000
 
 #define TEMPEST_ARG_EMPTY       0b0100000000000000
 #define TEMPEST_ARG_INVALID     0b1000000000000000
@@ -44,6 +45,7 @@ using namespace std;
 #define TEMPEST_REQ_RELAY(c)    ((c & TEMPEST_ARG_URL) == TEMPEST_ARG_URL)
 #define TEMPEST_REQ_TRACE(c)    ((c & TEMPEST_ARG_TRACE) == TEMPEST_ARG_TRACE)
 #define TEMPEST_REQ_STOP(c)     ((c & TEMPEST_ARG_STOP) == TEMPEST_ARG_STOP)
+#define TEMPEST_REQ_STATS(c)    ((c & TEMPEST_ARG_STATS) == TEMPEST_ARG_STATS)
 #define TEMPEST_REQ_VERSION(c)  ((c & TEMPEST_ARG_VERSION) == TEMPEST_ARG_VERSION)
 #define TEMPEST_REQ_HELP(c)     ((c & TEMPEST_ARG_HELP) == TEMPEST_ARG_HELP)
 
@@ -55,6 +57,7 @@ using namespace std;
 #define TEMPEST_INV_RELAY(c)    (c & ~(TEMPEST_ARG_URL | TEMPEST_ARG_FORMAT | TEMPEST_ARG_INTERVAL | TEMPEST_ARG_LOG | TEMPEST_ARG_DAEMON))
 #define TEMPEST_INV_TRACE(c)    (c & ~(TEMPEST_ARG_TRACE | TEMPEST_ARG_FORMAT | TEMPEST_ARG_INTERVAL | TEMPEST_ARG_LOG))
 #define TEMPEST_INV_STOP(c)     (c & ~(TEMPEST_ARG_STOP))
+#define TEMPEST_INV_STATS(c)    (c & ~(TEMPEST_ARG_STATS))
 #define TEMPEST_INV_VERSION(c)  (c & ~(TEMPEST_ARG_VERSION))
 #define TEMPEST_INV_HELP(c)     (c & ~(TEMPEST_ARG_HELP | TEMPEST_ARG_EMPTY))
 
@@ -155,6 +158,10 @@ public:
             cmdl_ |= TEMPEST_ARG_STOP;
             break;
 
+          case 'x':
+            cmdl_ |= TEMPEST_ARG_STATS;
+            break;
+
           case 'v':
             cmdl_ |= TEMPEST_ARG_VERSION;
             break;
@@ -187,6 +194,10 @@ public:
       else if (TEMPEST_REQ_STOP(cmdl_)) {
         // Stop command
         if (TEMPEST_INV_STOP(cmdl_)) throw invalid_argument("stop");
+      }
+      else if (TEMPEST_REQ_STATS(cmdl_)) {
+        // Stop command
+        if (TEMPEST_INV_STATS(cmdl_)) throw invalid_argument("stats");
       }
       else if (TEMPEST_REQ_VERSION(cmdl_)) {
         // Version command
@@ -291,6 +302,17 @@ public:
     return (true);
   }
 
+  bool IsCommandStats(string& str) const {
+    //
+    // Return whether the stats command was invoked
+    //
+    if (TEMPEST_INV_STATS(cmdl_)) return (false);
+
+    str = "tempest --stats";
+
+    return (true);
+  }
+
   bool IsCommandVersion(string& str) const {
     //
     // Return whether the version command was invoked
@@ -373,6 +395,7 @@ const char* const Arguments::usage_[] = {
   "Trace:        tempest --trace [--format=<fmt>] [--interval=<min>]",
   "                      [--log=<lev>]",
   "Stop:         tempest --stop",
+  "Stats:        tempest --stats",
   "Version:      tempest --version",
   "Help:         tempest [--help]",
   "",
@@ -392,6 +415,7 @@ const char* const Arguments::usage_[] = {
   "                      (if both --format and --interval are omitted",
   "                      the source UDP JSON will be traced instead)",
   "-s | --stop           stop relaying/tracing and exit gracefully",
+  "-x | --stats          print relay statistics",
   "-v | --version        print version information",
   "-h | --help           print this help",
   "",
@@ -411,6 +435,7 @@ const struct option Arguments::option_[] = {
   {"daemon",   no_argument,       0, 'd'},
   {"trace",    no_argument,       0, 't'},
   {"stop",     no_argument,       0, 's'},
+  {"stats",    no_argument,       0, 'x'},  
   {"version",  no_argument,       0, 'v'},
   {"help",     no_argument,       0, 'h'},
   {nullptr,    0,                 0, 0  }

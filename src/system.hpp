@@ -52,6 +52,12 @@
 #include <syslog.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
+#include <sys/shm.h>
+
+#include <semaphore.h>
+#include <fcntl.h>
+
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <unistd.h>

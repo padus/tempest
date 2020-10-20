@@ -114,6 +114,40 @@ public:
     return (date);
   }
 
+  // -----------------------------------------------------------
+
+  inline static double degree_to_radian(double degree) {
+    return (degree * (M_PI / 180)); 
+  } 
+
+  // -----------------------------------------------------------
+
+  inline static double radian_to_degree(double radian) {
+    return (radian * (180 / M_PI)); 
+  } 
+
+  // -----------------------------------------------------------
+
+  inline static void wind_vector_to_avg(const double direction[], const double speed[], size_t size, double& direction_avg, double& speed_avg) {
+    //
+    // based on https://www.researchgate.net/publication/262766424_Technical_note_Averaging_wind_speeds_and_directions
+    //
+    double sin_sum = 0, cos_sum = 0;
+
+    for (size_t i = 0; i < size; i++) {
+      sin_sum += -speed[i] * sin(2 * M_PI * direction[i] / 360);
+      cos_sum += -speed[i] * cos(2 * M_PI * direction[i] / 360);
+    }
+
+    // Average
+    sin_sum /= size;
+    cos_sum /= size;
+
+    //Simple Pythagorean Theorem
+    speed_avg = sqrt((sin_sum * sin_sum) + (cos_sum * cos_sum));
+
+    direction_avg = (atan2(sin_sum, cos_sum) * 360 / 2 / M_PI) + 180;
+  }
 };
 
 } // namespace tempest

@@ -15,7 +15,7 @@
 #include "system.hpp"
 
 #include "log.hpp"
-#include "tempest.hpp"
+#include "codec.hpp"
 
 // Source ---------------------------------------------------------------------------------------------------------------------
 
@@ -234,6 +234,15 @@ public:
     return (err);
   }
 
+  string Stats(void) {
+    //
+    // Return tempest data structure statistics
+    //
+    scoped_lock<mutex> lock{tempest_access_};
+
+    return (StatsUdp());
+  }
+
 private:
 
   void Exit(bool notify = false) {
@@ -249,15 +258,6 @@ private:
   }
 
   inline bool Continue(void) { return (!exit_); }
-
-  string Stats(void) {
-    //
-    // Return tempest data structure statistics
-    //
-    scoped_lock<mutex> lock{tempest_access_};
-
-    return (StatsUdp());
-  }
 
   size_t Write(Log& log, const char data[], size_t data_len) {
     //
