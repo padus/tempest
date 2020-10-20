@@ -39,6 +39,7 @@ A fast and efficient UDP relay service designed to receive WeatherFlow Tempest l
   Trace:        tempest --trace [--format=<fmt>] [--interval=<min>]
                         [--log=<lev>]
   Stop:         tempest --stop
+  Stats:        tempest --stats
   Version:      tempest --version
   Help:         tempest [--help]
 
@@ -58,6 +59,7 @@ A fast and efficient UDP relay service designed to receive WeatherFlow Tempest l
                         (if both --format and --interval are omitted
                         the source UDP JSON will be traced instead)
   -s | --stop           stop relaying/tracing and exit gracefully
+  -x | --stats          print relay statistics
   -v | --version        print version information
   -h | --help           print this help
 
