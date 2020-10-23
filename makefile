@@ -1,72 +1,158 @@
 #
-# App:         WeatherFlow Tempest UDP Relay 
+# App:         Tempest
 # Author:      Mirco Caramori
 # Copyright:   (c) 2020 Mirco Caramori
 # Repository:  https://github.com/mircolino/tempest
 #
 # Description: application builder
 #
-# Usage:       make release (or just make)      build distribuition bin/tempest
-#              make debug                       build development version bin/tempestd
-#              make clean                       clean building environment
-#              make tree                        build building directy tree structure  
+# Usage:       make release (or just make)      build release version build/relese/tempest -> bin/tempest
+#              make debug                       build development version build/debug/tempest
+#              make syntax FILE=./src/foo.cpp   check the syntax of $(FILE)
+#              make run                         run release version build/relese/tempest 
+#              make clean                       clean the building environment
+#
+# Notes:       - on Windows this has been tested with mingw-w64 GNU make
+#              - filenames and directories cannot have spaces
+#              - directories must not end with /
+#              - extensions must begin with .
+#
+# Project:     project/
+#              |
+#              |-- src/
+#              |   |
+#              |   |-- system.hpp
+#              |   |-- *.hpp
+#              |    -- *.cpp
+#              |
+#              |-- bin/
+#              |   |
+#              |    -- project (build/release)
+#              |
+#               -- build/
+#                  |
+#                  |-- release/
+#                  |   |
+#                  |   |-- *.o
+#                  |    -- project
+#                  |
+#                   -- debug/
+#                      |
+#                      |-- system.hpp.gch
+#                      |-- *.o
+#                       -- project
 #
 
+#
 # Functions
+#
+rwildcard = $(foreach d,$(wildcard $(1:=/*)),$(call rwildcard,$d,$2)$(filter $(subst *,%,$2),$d))
 
-rwildcard = $(wildcard $1$2)$(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
-
+#
 # Variables
+#
+PROJECT := tempest
+PRECOMP := system
 
-SRC := src
-BIN := bin
-BLD := build
+HDR_EXT := .hpp
+SRC_EXT := .cpp
+PCH_EXT := .hpp.gch
 
-HPP := $(call rwildcard,$(SRC)/,*.hpp)
-CPP := $(call rwildcard,$(SRC)/,*.cpp)
-PCH := $(BLD)/system.hpp.gch
-OBJ := $(CPP:$(SRC)/%.cpp=$(BLD)/%.o)
-# LIB := -lstdc++fs -lcurl -lrt
-LIB := -lcurl
-EXE := $(BLD)/tempest
+ifeq ($(OS),Windows_NT)
+  OBJ_EXT := .obj
+  EXE_EXT := .exe	
+else
+  OBJ_EXT := .o
+  EXE_EXT :=
+endif
 
-WRN := -Wpedantic -Wall -Wextra -Weffc++
+SRC_DIR := ./src
+BIN_DIR := ./bin
+REL_DIR := ./build/release
+DBG_DIR := ./build/debug
+HDR_LST := $(sort $(call rwildcard,$(SRC_DIR),*$(HDR_EXT)))
+SRC_LST := $(sort $(call rwildcard,$(SRC_DIR),*$(SRC_EXT)))
+DIR_LST := $(patsubst %/,%,$(dir $(SRC_LST)))
+REL_LST := $(sort $(REL_DIR) $(patsubst $(SRC_DIR)%,$(REL_DIR)%,$(DIR_LST)))
+DBG_LST := $(sort $(DBG_DIR) $(patsubst $(SRC_DIR)%,$(DBG_DIR)%,$(DIR_LST)))
 
-CXX_RELEASE := g++ -std=c++17 -pthread -I$(SRC) -DNDEBUG -DTEMPEST_RELEASE -O3
-CXX_DEBUG := g++ -std=c++17 -pthread -I$(BLD) -I$(SRC) -DTEMPEST_DEBUG -ggdb
+REL_WRN :=
+DBG_WRN := #-Wpedantic -Wall -Wextra -Weffc++
 
+REL_INC := -I$(SRC_DIR)
+DBG_INC := -I$(DBG_DIR) -I$(SRC_DIR)
+
+REL_DEF := -DNDEBUG
+DBG_DEF :=
+
+REL_CXX := g++ -std=c++17 -pthread $(REL_WRN) $(REL_INC) $(REL_DEF) -O3
+DBG_CXX := g++ -std=c++17 -pthread $(DBG_WRN) $(DBG_INC) $(DBG_DEF) -ggdb
+
+REL_LIB := -lcurl
+DBG_LIB := -lcurl
+
+#
 # Dependencies & Tasks
+#
+.PHONY: all release debug syntax run clean info
 
-.PRECIOUS: $(PCH)
-
+# default action
 all: release
 
-release: $(EXE)
+# build release
+release: $(BIN_DIR)/$(PROJECT)$(EXE_EXT)
 
-$(EXE): $(CPP) $(HPP)
-	$(CXX_RELEASE) $(CPP) $(LIB) -o $@
-	cp -f $(EXE) $(BIN)/
+# copy exe to bin folder
+$(BIN_DIR)/$(PROJECT)$(EXE_EXT): $(REL_DIR)/$(PROJECT)$(EXE_EXT)
+	cp -f $< $@ 
 
-debug: $(EXE)d
+# link release
+$(REL_DIR)/$(PROJECT)$(EXE_EXT): $(patsubst $(SRC_DIR)/%$(SRC_EXT),$(REL_DIR)/%$(OBJ_EXT),$(SRC_LST)) | $(REL_DIR) $(BIN_DIR)
+	$(REL_CXX) $^ $(REL_LIB) -o $@ 
 
-$(EXE)d: $(OBJ)
-	$(CXX_DEBUG) $(OBJ) $(LIB) -o $@ 
+# compile release
+$(REL_DIR)/%$(OBJ_EXT): $(SRC_DIR)/%$(SRC_EXT) $(HDR_LST) | $(REL_LST)
+	$(REL_CXX) -c $< -o $@
 
-$(BLD)/%.o: $(SRC)/%.cpp $(HPP) $(PCH)
-	$(CXX_DEBUG) -c $< -o $@
+# build debug
+debug: $(DBG_DIR)/$(PROJECT)$(EXE_EXT)
 
-$(BLD)/%.hpp.gch: $(SRC)/%.hpp
-	$(CXX_DEBUG) -x c++-header $< -o $@
-	
-clean:
-	rm -fr $(BLD)/*
+# link debug
+$(DBG_DIR)/$(PROJECT)$(EXE_EXT): $(patsubst $(SRC_DIR)/%$(SRC_EXT),$(DBG_DIR)/%$(OBJ_EXT),$(SRC_LST)) | $(DBG_DIR)
+	$(DBG_CXX) $^ $(DBG_LIB) -o $@ 
 
-tree:
-	mkdir -p $(BLD)
+# compile debug
+$(DBG_DIR)/%$(OBJ_EXT): $(SRC_DIR)/%$(SRC_EXT) $(HDR_LST) $(DBG_DIR)/$(PRECOMP)$(PCH_EXT) | $(DBG_LST)
+	$(DBG_CXX) -c $< -o $@
+
+# precomp debug
+$(DBG_DIR)/$(PRECOMP)$(PCH_EXT): $(SRC_DIR)/$(PRECOMP)$(HDR_EXT) | $(DBG_DIR)
+	$(DBG_CXX) -x c++-header $< -o $@
+
+# test syntax only
+syntax: 
+	$(DBG_CXX) -fsyntax-only $(FILE)
+
+# run release
+run: $(REL_DIR)/$(PROJECT)$(EXE_EXT)
+	$<
+
+# clean build
+clean: | $(REL_DIR) $(DBG_DIR) $(BIN_DIR)
+	rm -fr $(REL_DIR)/* $(DBG_DIR)/* $(BIN_DIR)/*
+
+# directory factory
+$(REL_LST) $(DBG_LST) $(BIN_DIR):
+	mkdir -p $@
 
 info:
-	$(info $(HPP))
-	$(info $(CPP))
-	$(info $(PCH))
-	$(info $(OBJ))
-	$(info $(EXE))
+	$(info $(HDR_LST))
+	$(info $(SRC_LST))
+	$(info $(DIR_LST))
+	$(info $(REL_LST))
+	$(info $(DBG_LST))
+
+# Recycle Bin
+
+
+# EOF
