@@ -1,8 +1,8 @@
 #
-# App:         C/C++ makefile
+# App:         WeatherFlow Tempest UDP Relay
 # Author:      Mirco Caramori
 # Copyright:   (c) 2020 Mirco Caramori
-# Repository:  https://github.com/mircolino/makefile
+# Repository:  https://github.com/mircolino/tempest
 #
 # Description: application builder
 #
@@ -60,7 +60,7 @@ PCH_EXT := .hpp.gch
 
 ifeq ($(OS),Windows_NT)
   OBJ_EXT := .obj
-  EXE_EXT := .exe	
+  EXE_EXT := .exe
 else
   OBJ_EXT := .o
   EXE_EXT :=
@@ -76,8 +76,11 @@ DIR_LST := $(patsubst %/,%,$(dir $(SRC_LST)))
 REL_LST := $(sort $(REL_DIR) $(patsubst $(SRC_DIR)%,$(REL_DIR)%,$(DIR_LST)))
 DBG_LST := $(sort $(DBG_DIR) $(patsubst $(SRC_DIR)%,$(DBG_DIR)%,$(DIR_LST)))
 
+REL_OPT := -std=c++17 -pthread -O3
+DBG_OPT := -std=c++17 -pthread -ggdb
+
 REL_WRN :=
-DBG_WRN := # -Wpedantic -Wall -Wextra -Weffc++
+DBG_WRN :=# -Wpedantic -Wall -Wextra -Weffc++
 
 REL_INC := -I$(SRC_DIR)
 DBG_INC := -I$(DBG_DIR) -I$(SRC_DIR)
@@ -85,11 +88,14 @@ DBG_INC := -I$(DBG_DIR) -I$(SRC_DIR)
 REL_DEF := -DNDEBUG
 DBG_DEF :=
 
-REL_CXX := g++ -std=c++17 -pthread $(REL_WRN) $(REL_INC) $(REL_DEF) -O3
-DBG_CXX := g++ -std=c++17 -pthread $(DBG_WRN) $(DBG_INC) $(DBG_DEF) -ggdb
+REL_CMP := $(REL_OPT) $(REL_WRN) $(REL_INC) $(REL_DEF)
+DBG_CMP := $(DBG_OPT) $(DBG_WRN) $(DBG_INC) $(DBG_DEF)
 
 REL_LIB := -lcurl
 DBG_LIB := -lcurl
+
+REL_LNK := $(REL_CMP) $(REL_LIB)
+DBG_LNK := $(DBG_CMP) $(DBG_LIB)
 
 #
 # Dependencies & Tasks
@@ -112,30 +118,30 @@ $(BIN_DIR)/$(PROJECT)$(EXE_EXT): $(REL_DIR)/$(PROJECT)$(EXE_EXT) | $(BIN_DIR)
 
 # release: link
 $(REL_DIR)/$(PROJECT)$(EXE_EXT): $(patsubst $(SRC_DIR)/%$(SRC_EXT),$(REL_DIR)/%$(OBJ_EXT),$(SRC_LST)) | $(REL_DIR)
-	$(REL_CXX) $^ $(REL_LIB) -o $@ 
+	g++ $(REL_LNK) $^ -o $@ 
 
 # release: compile
 $(REL_DIR)/%$(OBJ_EXT): $(SRC_DIR)/%$(SRC_EXT) $(HDR_LST) | $(REL_LST)
-	$(REL_CXX) -c $< -o $@
+	g++ $(REL_CMP) -c $< -o $@
 
 # debug: build
 debug: $(DBG_DIR)/$(PROJECT)$(EXE_EXT)
 
 # debug: link
 $(DBG_DIR)/$(PROJECT)$(EXE_EXT): $(patsubst $(SRC_DIR)/%$(SRC_EXT),$(DBG_DIR)/%$(OBJ_EXT),$(SRC_LST)) | $(DBG_DIR)
-	$(DBG_CXX) $^ $(DBG_LIB) -o $@ 
+	g++ $(DBG_LNK) $^ -o $@ 
 
 # debug: compile
 $(DBG_DIR)/%$(OBJ_EXT): $(SRC_DIR)/%$(SRC_EXT) $(HDR_LST) $(DBG_DIR)/$(PRECOMP)$(PCH_EXT) | $(DBG_LST)
-	$(DBG_CXX) -c $< -o $@
+	g++ $(DBG_CMP) -c $< -o $@
 
 # debug: precomp
 $(DBG_DIR)/$(PRECOMP)$(PCH_EXT): $(SRC_DIR)/$(PRECOMP)$(HDR_EXT) | $(DBG_DIR)
-	$(DBG_CXX) -x c++-header $< -o $@
+	g++ $(DBG_CMP) -x c++-header $< -o $@
 
 # syntax test only
 syntax: 
-	$(DBG_CXX) -fsyntax-only $(FILE)
+	g++ $(DBG_CMP) -fsyntax-only $(FILE)
 
 # clean or reset build
 clean: | $(REL_DIR) $(DBG_DIR) $(BIN_DIR)
@@ -154,5 +160,7 @@ info:
 	$(info $(DBG_LST))
 
 # Recycle Bin
+
+# $(warning OS=$(OS))
 
 # EOF
