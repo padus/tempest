@@ -5,10 +5,10 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "(gdb) Launch",
+      "name": "launch-debug",
       "type": "cppdbg",
       "request": "launch",
-      "program": "${workspaceFolder}/build/tempestd",
+      "program": "${workspaceFolder}/build/debug/tempest",
       "args": ["--stop"],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
@@ -22,7 +22,7 @@
           "ignoreFailures": true
         }
       ],
-      "preLaunchTask": "build"
+      "preLaunchTask": "build-debug"
     }
   ]
 }
