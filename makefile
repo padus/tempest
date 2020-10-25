@@ -1,18 +1,23 @@
 #
-# App:         WeatherFlow Tempest UDP Relay
+# Project:     C/C++ Makefile
 # Author:      Mirco Caramori
 # Copyright:   (c) 2020 Mirco Caramori
-# Repository:  https://github.com/mircolino/tempest
+# Repository:  https://github.com/mircolino/makefile
 #
 # Description: application builder
 #
-# Usage:       make release (or just make)      build release version build/relese/project -> bin/project
-#              make run                         run release version build/relese/project 
+# Usage:       make run                         run release version build/relese/project
+#              make release (or just make)      build release version build/relese/project -> bin/project
 #              make debug                       build development version build/debug/project
 #              make syntax FILE=./src/foo.cpp   check the syntax of $(FILE)
 #              make clean                       clean or reset the building environment
 #
-# Notes:       - on Windows this has been tested with mingw-w64 GNU gcc/g++ and make
+# Environment: Linux -> gcc                     apt install build-essential gdb
+#              Windows -> make                  install mingw-w64 and either run mingw-w64.bat or add mingw-w64/bin to the PATH
+#              Windows -> gcc                   install mingw-w64 and either run mingw-w64.bat or add mingw-w64/bin to the PATH
+#              Windows -> msvc                  install VS Build Tools and run vcvarsall.bat with a platform (i.e. vcvarsall.bat x64)
+#
+# Notes:       - only variables between dotted lines should need to be customized
 #              - filenames and directories cannot have spaces
 #              - directories must not end with /
 #              - extensions must begin with .
@@ -49,14 +54,34 @@
 rwildcard = $(foreach d,$(wildcard $(1:=/*)),$(call rwildcard,$d,$2)$(filter $(subst *,%,$2),$d))
 
 #
+# Misc
+#
+define NEWLINE
+
+
+endef
+
+HASH := \#
+
+#
 # Variables
 #
+
+#-------------------------------------------------------------------------------------------------------------------------------
+# gcc | msvc
+CC      := gcc
 PROJECT := tempest
 PRECOMP := system
+#-------------------------------------------------------------------------------------------------------------------------------
 
 HDR_EXT := .hpp
 SRC_EXT := .cpp
-PCH_EXT := .hpp.gch
+
+ifeq ($(CC),msvc)
+  PCH_EXT := .pch
+else
+  PCH_EXT := $(HDR_EXT).gch
+endif
 
 ifeq ($(OS),Windows_NT)
   OBJ_EXT := .obj
@@ -66,51 +91,66 @@ else
   EXE_EXT :=
 endif
 
-SRC_DIR := ./src
-BIN_DIR := ./bin
-REL_DIR := ./build/release
-DBG_DIR := ./build/debug
+SRC_DIR := src
+BIN_DIR := bin
+REL_DIR := build/release
+DBG_DIR := build/debug
 HDR_LST := $(sort $(call rwildcard,$(SRC_DIR),*$(HDR_EXT)))
 SRC_LST := $(sort $(call rwildcard,$(SRC_DIR),*$(SRC_EXT)))
 DIR_LST := $(patsubst %/,%,$(dir $(SRC_LST)))
 REL_LST := $(sort $(REL_DIR) $(patsubst $(SRC_DIR)%,$(REL_DIR)%,$(DIR_LST)))
 DBG_LST := $(sort $(DBG_DIR) $(patsubst $(SRC_DIR)%,$(DBG_DIR)%,$(DIR_LST)))
 
-REL_OPT := -std=c++17 -pthread -O3
-DBG_OPT := -std=c++17 -pthread -ggdb
+ifeq ($(CC),msvc)
+  #-----------------------------------------------------------------------------------------------------------------------------
+  REL_CFL := -std:c++17 -EHsc -nologo -O2 -I$(SRC_DIR) -DNDEBUG
+  REL_LFL := -nologo
 
-REL_WRN :=
-DBG_WRN :=# -Wpedantic -Wall -Wextra -Weffc++
+  DBG_CFL := -std:c++17 -EHsc -nologo -Zi -Wall -I$(DBG_DIR) -I$(SRC_DIR) 
+  DBG_LFL := -nologo -debug
+  #-----------------------------------------------------------------------------------------------------------------------------
 
-REL_INC := -I$(SRC_DIR)
-DBG_INC := -I$(DBG_DIR) -I$(SRC_DIR)
+  REL_CMP  = cl $(REL_CFL) -c -Fo$@ $<
+  REL_LNK  = link $(REL_LFL) -out:$@ $^
 
-REL_DEF := -DNDEBUG
-DBG_DEF :=
+  DBG_PCH  = echo "$(HASH)include <$(PRECOMP)$(HDR_EXT)>" > $(DBG_DIR)/$(PRECOMP)$(SRC_EXT)$(NEWLINE) \
+             cl $(DBG_CFL) -Yc$(PRECOMP)$(HDR_EXT) -Fd$(DBG_DIR)/ -Fp$(DBG_DIR)/$(PRECOMP)$(PCH_EXT) -Fo$(DBG_DIR)/$(PRECOMP)$(OBJ_EXT) -c $(DBG_DIR)/$(PRECOMP)$(SRC_EXT)$(NEWLINE) \
+             rm -f $(DBG_DIR)/$(PRECOMP)$(SRC_EXT)
+  DBG_SYN  = cl $(DBG_CFL) -Yu$(PRECOMP)$(HDR_EXT) -Fd$(DBG_DIR)/ -Fp$(DBG_DIR)/$(PRECOMP)$(PCH_EXT) -Zs $(FILE)
+  DBG_CMP  = cl $(DBG_CFL) -Yu$(PRECOMP)$(HDR_EXT) -Fd$(DBG_DIR)/ -Fp$(DBG_DIR)/$(PRECOMP)$(PCH_EXT) -Fo$@ -c $<
+  DBG_LNK  = link $(DBG_LFL) -out:$@ $^ $(DBG_DIR)/$(PRECOMP)$(OBJ_EXT)
+else
+  #-----------------------------------------------------------------------------------------------------------------------------
+  REL_CFL := -std=c++17 -pthread -O3 -I$(SRC_DIR) -DNDEBUG
+  REL_LFL := -pthread -lcurl
 
-REL_CMP := $(REL_OPT) $(REL_WRN) $(REL_INC) $(REL_DEF)
-DBG_CMP := $(DBG_OPT) $(DBG_WRN) $(DBG_INC) $(DBG_DEF)
+  DBG_CFL := -std=c++17 -pthread -ggdb -I$(DBG_DIR) -I$(SRC_DIR)
+  DBG_LFL := -pthread -lcurl
+  #-----------------------------------------------------------------------------------------------------------------------------
 
-REL_LIB := -lcurl
-DBG_LIB := -lcurl
+  REL_CMP  = g++ $(REL_CFL) -c $< -o $@
+  REL_LNK  = g++ $(REL_LFL) $^ -o $@
 
-REL_LNK := $(REL_CMP) $(REL_LIB)
-DBG_LNK := $(DBG_CMP) $(DBG_LIB)
+  DBG_PCH  = g++ $(DBG_CFL) -x c++-header $< -o $@
+  DBG_SYN  = g++ $(DBG_CFL) -fsyntax-only $(FILE)	
+  DBG_CMP  = g++ $(DBG_CFL) -c $< -o $@
+  DBG_LNK  = g++ $(DBG_LFL) $^ -o $@
+endif
 
 #
 # Dependencies & Tasks
 #
-.PHONY: all release run debug syntax clean info
+.PHONY: all run release debug syntax clean info
 
 # default build
 all: release
 
-# release: build
-release: $(BIN_DIR)/$(PROJECT)$(EXE_EXT)
-
-# release: run
+# release: runs
 run: $(REL_DIR)/$(PROJECT)$(EXE_EXT)
 	$<
+
+# release: build
+release: $(BIN_DIR)/$(PROJECT)$(EXE_EXT)
 
 # release: copy release exe to bin folder
 $(BIN_DIR)/$(PROJECT)$(EXE_EXT): $(REL_DIR)/$(PROJECT)$(EXE_EXT) | $(BIN_DIR)
@@ -118,30 +158,30 @@ $(BIN_DIR)/$(PROJECT)$(EXE_EXT): $(REL_DIR)/$(PROJECT)$(EXE_EXT) | $(BIN_DIR)
 
 # release: link
 $(REL_DIR)/$(PROJECT)$(EXE_EXT): $(patsubst $(SRC_DIR)/%$(SRC_EXT),$(REL_DIR)/%$(OBJ_EXT),$(SRC_LST)) | $(REL_DIR)
-	g++ $(REL_LNK) $^ -o $@ 
+	$(REL_LNK) 
 
 # release: compile
 $(REL_DIR)/%$(OBJ_EXT): $(SRC_DIR)/%$(SRC_EXT) $(HDR_LST) | $(REL_LST)
-	g++ $(REL_CMP) -c $< -o $@
+	$(REL_CMP)
 
 # debug: build
 debug: $(DBG_DIR)/$(PROJECT)$(EXE_EXT)
 
 # debug: link
 $(DBG_DIR)/$(PROJECT)$(EXE_EXT): $(patsubst $(SRC_DIR)/%$(SRC_EXT),$(DBG_DIR)/%$(OBJ_EXT),$(SRC_LST)) | $(DBG_DIR)
-	g++ $(DBG_LNK) $^ -o $@ 
+	$(DBG_LNK) 
 
 # debug: compile
 $(DBG_DIR)/%$(OBJ_EXT): $(SRC_DIR)/%$(SRC_EXT) $(HDR_LST) $(DBG_DIR)/$(PRECOMP)$(PCH_EXT) | $(DBG_LST)
-	g++ $(DBG_CMP) -c $< -o $@
+	$(DBG_CMP)
+
+# syntax test only
+syntax: $(HDR_LST) $(DBG_DIR)/$(PRECOMP)$(PCH_EXT) | $(DBG_DIR) 
+	$(DBG_SYN)
 
 # debug: precomp
 $(DBG_DIR)/$(PRECOMP)$(PCH_EXT): $(SRC_DIR)/$(PRECOMP)$(HDR_EXT) | $(DBG_DIR)
-	g++ $(DBG_CMP) -x c++-header $< -o $@
-
-# syntax test only
-syntax: 
-	g++ $(DBG_CMP) -fsyntax-only $(FILE)
+	$(DBG_PCH)
 
 # clean or reset build
 clean: | $(REL_DIR) $(DBG_DIR) $(BIN_DIR)
@@ -159,7 +199,9 @@ info:
 	$(info $(REL_LST))
 	$(info $(DBG_LST))
 
+#
 # Recycle Bin
+#
 
 # $(warning OS=$(OS))
 
