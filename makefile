@@ -15,7 +15,7 @@
 # Environment: Linux -> gcc                     apt install build-essential gdb
 #              Windows -> make                  install mingw-w64 and either run mingw-w64.bat or add mingw-w64/bin to the PATH
 #              Windows -> gcc                   install mingw-w64 and either run mingw-w64.bat or add mingw-w64/bin to the PATH
-#              Windows -> msvc                  install VS Build Tools and run vcvarsall.bat with a platform (i.e. vcvarsall.bat x64)
+#              Windows -> msvc                  install VS Build Tools and run VsDevCmd.bat (i.e. VsDevCmd.bat -arch=x64)
 #
 # Notes:       - only variables between dotted lines should need to be customized
 #              - filenames and directories cannot have spaces
