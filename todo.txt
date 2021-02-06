@@ -8,6 +8,4 @@
 #
 
 - save precipitation accumulation to file at exit and reload it at start
-- demonize
 - makerAPI interface
-

@@ -125,7 +125,7 @@ public:
     }
 
     if (sock != -1) close(sock);
-    Exit(true);
+    Exit(err != EXIT_SUCCESS, true);
     TLOG_INFO(log) << "Receiver ended with return code = " << err << "." << endl;
 
     return (err);
@@ -228,7 +228,7 @@ public:
       curl_global_cleanup();
     }
 
-    Exit();
+    Exit(err != EXIT_SUCCESS);
     TLOG_INFO(log) << "Trasmitter ended with return code = " << err << "." << endl;
 
     return (err);
@@ -245,16 +245,21 @@ public:
 
 private:
 
-  void Exit(bool notify = false) {
+  void Exit(bool notify_parent = false, bool notify_transmitter = false) {
 
     exit_ = true;
 
-    if (notify) {
+    if (notify_transmitter) {
       // Wake up the transmitter if he's sleeping
       scoped_lock<mutex> lock{tempest_access_};
 
       transmitter_.notify_one();
     }
+
+    if (notify_parent) {
+      // Wake up the parent
+      kill(getpid(), SIGTERM);
+    }    
   }
 
   inline bool Continue(void) { return (!exit_); }

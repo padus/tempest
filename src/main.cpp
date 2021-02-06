@@ -18,6 +18,8 @@
 //              added IPC
 //              added relay statistics
 // 2020.10.20:  v1.1.46
+//              fixed a bug where the parent would not exit if all workers errored out
+//              added receiver and trasmitter retry error
 //
 
 // Includes -------------------------------------------------------------------------------------------------------------------
@@ -33,7 +35,7 @@
 
 // Source ---------------------------------------------------------------------------------------------------------------------
 
-#define TEMPEST_VERSION         "v1.1.46"
+#define TEMPEST_VERSION         "v1.1.51"
 
 using namespace std;
 using namespace tempest;
