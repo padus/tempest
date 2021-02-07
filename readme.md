@@ -22,7 +22,7 @@ For the relay to properly receive UDP data from the WeatherFlow Tempest station,
 If the host running the relay has a firewall and, for example, you are using UFW, you can use the following command:
 
 ```text
-  sudo ufw allow 50222/udp
+  ~# sudo ufw allow 50222/udp
 ```
 
 ### Test UDP Relay
