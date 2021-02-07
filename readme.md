@@ -18,8 +18,7 @@ Login to your Linux host, either locally or via SSH.
 
 ### Firewall
 
-For the relay to properly receive UDP data from the WeatherFlow Tempest station, incoming port UPD 50222 needs to be open.  
-If the host running the relay has a firewall and, for example, you are using UFW, you can use the following command:
+For the relay to properly receive UDP data from the WeatherFlow Tempest station, incoming port UPD 50222 needs to be open. If the host running the relay has a firewall and, for example, you are using UFW, you can use the following command:
 
 ```text
   ~# sudo ufw allow 50222/udp
@@ -27,8 +26,7 @@ If the host running the relay has a firewall and, for example, you are using UFW
 
 ### Test UDP Relay
 
-Now that UDP port 50222 is open let's test the relay to make sure it's properly receiving UDP data from the weather station.  
-Download the relay from github, make it executable and then start it in tracing mode:
+Now that UDP port 50222 is open let's test the relay to make sure it's properly receiving UDP data from the weather station. Download the relay from github, make it executable and then start it in tracing mode:
 
 ```text
   ~# wget https://github.com/mircolino/tempest/raw/master/bin/tempest
@@ -36,7 +34,7 @@ Download the relay from github, make it executable and then start it in tracing 
   ~# ./tempest --trace
 ```
 
-If the realy starts displaying incoming UDP data, it means everytihng is working as expected. Hit \<CTRL>+\<C> to exit the relay and delete the file:
+If the relay starts displaying incoming UDP data, it means everything is working as expected. Hit \<CTRL>+\<C> to exit the relay and delete the executable:
 
 ```text
   ~# rm ./tempest
@@ -44,8 +42,7 @@ If the realy starts displaying incoming UDP data, it means everytihng is working
 
 ### Install the UDP Relay as a System Service
 
-For the relay to automatically start every time the host boots up, it needs to be installed as a system service.  
-Download the relay from github and make it executable:
+For the relay to automatically start every time the host boots up, it needs to be installed as a system service. Download the relay from github and make it executable:
 
 ```text
   ~# sudo wget -P /usr/local/bin https://github.com/mircolino/tempest/raw/master/bin/tempest
