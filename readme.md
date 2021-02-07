@@ -113,8 +113,8 @@ To completely stop and remove the relay from the host:
 ```text
   ~# sudo systemctl stop tempest.service
   ~# sudo systemctl disable tempest.service
-  ~# rm rm /etc/systemd/system/tempest.service
-  ~# rm /usr/local/bin/tempest  
+  ~# sudo rm /etc/systemd/system/tempest.service
+  ~# sudo rm /usr/local/bin/tempest  
 ```
 
 ### UDP Relay Logs and Statistics
