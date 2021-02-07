@@ -44,8 +44,8 @@ If the realy starts displaying incoming UDP data, it means everytihng is working
 
 ### Install the UDP Relay as a system service
 
-For the relay to automatically start every time the host boots up, it need to be installed as a system service.  
-Download the relay from github, make it executable:
+For the relay to automatically start every time the host boots up, it needs to be installed as a system service.  
+Download the relay from github and make it executable:
 
 ```text
   ~# sudo wget -P /usr/local/bin https://github.com/mircolino/tempest/raw/master/bin/tempest
