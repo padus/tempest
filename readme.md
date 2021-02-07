@@ -42,7 +42,7 @@ If the realy starts displaying incoming UDP data, it means everytihng is working
   ~# rm ./tempest
 ```
 
-### Install the UDP Relay as a system service
+### Install the UDP Relay as a System Service
 
 For the relay to automatically start every time the host boots up, it needs to be installed as a system service.  
 Download the relay from github and make it executable:
@@ -52,7 +52,7 @@ Download the relay from github and make it executable:
   ~# sudo chmod +x /usr/local/bin/tempest
 ```
 
-Using your favourite editor create the file */etc/systemd/system/tempest.service* with the content below, making sure to update the URL with the correct Hubitat ip address or hostname:
+Using your favourite editor (I'm using nano in this example) create the file */etc/systemd/system/tempest.service* with the content below, making sure to update the URL with the correct Hubitat ip address or hostname:
 
 ```text
   ~# sudo nano /etc/systemd/system/tempest.service
