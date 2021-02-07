@@ -52,7 +52,7 @@ Download the relay from github and make it executable:
   ~# sudo chmod +x /usr/local/bin/tempest
 ```
 
-Using your favourite editor (I'm using nano in this example) create the file */etc/systemd/system/tempest.service* with the content below, making sure to update the URL with the correct Hubitat ip address or hostname:
+Using your favourite editor (nano in this example) create the file */etc/systemd/system/tempest.service* with the content below, making sure to update the URL with the correct Hubitat ip address or hostname:
 
 ```text
   ~# sudo nano /etc/systemd/system/tempest.service
@@ -87,6 +87,8 @@ If the relay service is running correctly, the next command should display a gre
 ```text
   ~# sudo systemctl status tempest.service
 ```
+
+![Service](https://github.com/mircolino/tempest/raw/master/images/service.png "Tempest Service")
 
 ### Update the UDP Relay
 
