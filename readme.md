@@ -117,7 +117,21 @@ To completely stop and remove the relay from the host:
   ~# rm /usr/local/bin/tempest  
 ```
 
-## Relay Command Line
+### UDP Relay Logs and Statistics
+
+To access relay logs:
+
+```text
+  ~# sudo grep tempest /var/log/daemon.log
+```
+
+To display relay statistics:
+
+```text
+  ~# sudo tempest --stats
+```
+
+## Relay Command Line Reference
 
   ```text
   Usage:        tempest [OPTIONS]
