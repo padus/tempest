@@ -122,7 +122,7 @@ To completely stop and remove the relay from the host:
 To access relay logs:
 
 ```text
-  ~# sudo grep tempest /var/log/daemon.log
+  ~# sudo grep tempest /var/log/daemon.log | less
 ```
 
 To display relay statistics:
