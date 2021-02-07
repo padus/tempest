@@ -20,6 +20,7 @@
 // 2020.10.20:  v1.1.46
 //              fixed a bug where the parent would not exit if all workers errored out
 //              added receiver and trasmitter retry error
+// 2021.02.07:  v1.1.52
 //
 
 // Includes -------------------------------------------------------------------------------------------------------------------
@@ -35,7 +36,7 @@
 
 // Source ---------------------------------------------------------------------------------------------------------------------
 
-#define TEMPEST_VERSION         "v1.1.51"
+#define TEMPEST_VERSION         "v1.1.52"
 
 using namespace std;
 using namespace tempest;

@@ -133,6 +133,7 @@ public:
 
   int Transmitter() {
     int err = EXIT_SUCCESS;
+    int err_consecutive = 0;
 
     // Initialize log
     Log log{facility_, level_};
@@ -208,8 +209,9 @@ public:
             res = curl_easy_perform(curl);
             if (res != CURLE_OK) {
               TLOG_ERROR(log) << "curl_easy_perform() failed: " << curl_easy_strerror(res) << "." << endl;
-              throw runtime_error("curl_easy_perform()");
+              if (++err_consecutive == 5) throw runtime_error("curl_easy_perform()");
             }
+            else err_consecutive = 0; 
           }
         }
       }
