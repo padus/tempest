@@ -24,7 +24,7 @@ For the relay to properly receive UDP data from the WeatherFlow Tempest station,
   ~# sudo ufw allow 50222/udp
 ```
 
-### Test UDP Relay
+### Test the UDP Relay
 
 Now that UDP port 50222 is open let's test the relay to make sure it's properly receiving UDP data from the weather station. Download the relay from github, make it executable and then start it in tracing mode:
 
