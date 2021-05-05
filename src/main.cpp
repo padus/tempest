@@ -21,6 +21,8 @@
 //              fixed a bug where the parent would not exit if all workers errored out
 //              added receiver and trasmitter retry error
 // 2021.02.07:  v1.1.52
+//              added SO_REUSEPORT option to listening socket
+// 2021.05.05:  v1.1.55
 //
 
 // Includes -------------------------------------------------------------------------------------------------------------------
@@ -36,7 +38,7 @@
 
 // Source ---------------------------------------------------------------------------------------------------------------------
 
-#define TEMPEST_VERSION         "v1.1.52"
+#define TEMPEST_VERSION         "v1.1.55"
 
 using namespace std;
 using namespace tempest;
