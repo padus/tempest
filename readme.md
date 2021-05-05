@@ -29,7 +29,7 @@ For the relay to properly receive UDP data from the WeatherFlow Tempest station,
 Now that UDP port 50222 is open let's test the relay to make sure it's properly receiving UDP data from the weather station. Download the relay from github, make it executable and then start it in tracing mode:
 
 ```text
-  ~# wget https://github.com/mircolino/tempest/raw/master/bin/tempest
+  ~# wget https://github.com/mircolino/tempest/raw/master/bin/linux_x86_64/tempest
   ~# chmod +x tempest
   ~# ./tempest --trace
 ```
@@ -45,7 +45,7 @@ If the relay starts displaying incoming UDP data, it means everything is working
 For the relay to automatically start every time the host boots up, it needs to be installed as a system service. Download the relay from github and make it executable:
 
 ```text
-  ~# sudo wget -P /usr/local/bin https://github.com/mircolino/tempest/raw/master/bin/tempest
+  ~# sudo wget -P /usr/local/bin https://github.com/mircolino/tempest/raw/master/bin/linux_x86_64/tempest
   ~# sudo chmod +x /usr/local/bin/tempest
 ```
 
@@ -75,14 +75,14 @@ Now we just need to create and start the service:
 
 ```text
   ~# sudo systemctl daemon-reload
-  ~# sudo systemctl enable tempest.service
-  ~# sudo systemctl start tempest.service
+  ~# sudo systemctl enable tempest
+  ~# sudo systemctl start tempest
 ```
 
 If the relay service is running correctly, the next command should display a green "dot" and "active" status:
 
 ```text
-  ~# sudo systemctl status tempest.service
+  ~# sudo systemctl status tempest
 ```
 
 ![Service](https://github.com/mircolino/tempest/raw/master/images/service.png "Tempest Service")
@@ -98,11 +98,11 @@ To check the current relay version:
 To update the relay:
 
 ```text
-  ~# sudo systemctl stop tempest.service
+  ~# sudo systemctl stop tempest
   ~# sudo rm /usr/local/bin/tempest
-  ~# sudo wget -P /usr/local/bin https://github.com/mircolino/tempest/raw/master/bin/tempest
+  ~# sudo wget -P /usr/local/bin https://github.com/mircolino/tempest/raw/master/bin/linux_x86_64/tempest
   ~# sudo chmod +x /usr/local/bin/tempest
-  ~# sudo systemctl start tempest.service  
+  ~# sudo systemctl start tempest
 ```
 
 ### Uninstall the UDP Relay
@@ -110,9 +110,10 @@ To update the relay:
 To completely stop and remove the relay from the host:
 
 ```text
-  ~# sudo systemctl stop tempest.service
-  ~# sudo systemctl disable tempest.service
-  ~# sudo rm /etc/systemd/system/tempest.service
+  ~# sudo systemctl stop tempest
+  ~# sudo systemctl disable tempest
+  ~# sudo systemctl daemon-reload  
+  ~# sudo rm /etc/systemd/system/tempest
   ~# sudo rm /usr/local/bin/tempest  
 ```
 
@@ -122,6 +123,7 @@ To access relay logs:
 
 ```text
   ~# sudo grep tempest /var/log/daemon.log | less
+  (type q to exit)
 ```
 
 To display relay statistics:

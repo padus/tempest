@@ -22,6 +22,7 @@
 //              added receiver and trasmitter retry error
 // 2021.02.07:  v1.1.52
 //              added SO_REUSEPORT option to listening socket
+//              added buinary build platform and cpu directory identifiers 
 // 2021.05.05:  v1.1.55
 //
 
