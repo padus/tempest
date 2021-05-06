@@ -23,7 +23,7 @@
 // 2021.02.07:  v1.1.52
 //              added buinary build platform and cpu directory identifiers 
 //              updated readme
-// 2021.05.05:  v1.1.55
+// 2021.05.05:  v1.1.56
 //
 
 // Includes -------------------------------------------------------------------------------------------------------------------
@@ -39,7 +39,7 @@
 
 // Source ---------------------------------------------------------------------------------------------------------------------
 
-#define TEMPEST_VERSION         "v1.1.55"
+#define TEMPEST_VERSION         "v1.1.56"
 
 using namespace std;
 using namespace tempest;
