@@ -55,13 +55,6 @@ public:
         throw runtime_error("socket()");
       }
 
-      // Try to open the address/port in shared mode
-      int reuse_port = 1;
-      if (setsockopt(sock, SOL_SOCKET, SO_REUSEPORT, &reuse_port, sizeof(reuse_port)) == -1) {
-        TLOG_ERROR(log) << "setsockopt() failed: " << strerror(errno) << "." << endl;
-        throw runtime_error("setsockopt()");
-      }
-
       // Construct bind structure and bind to the broadcast port
       struct sockaddr_in broadcast_addr;                        // broadcast address
       memset(&broadcast_addr, 0, sizeof(broadcast_addr));       // zero out structure

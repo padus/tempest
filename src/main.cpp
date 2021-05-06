@@ -21,8 +21,8 @@
 //              fixed a bug where the parent would not exit if all workers errored out
 //              added receiver and trasmitter retry error
 // 2021.02.07:  v1.1.52
-//              added SO_REUSEPORT option to listening socket
 //              added buinary build platform and cpu directory identifiers 
+//              updated readme
 // 2021.05.05:  v1.1.55
 //
 
