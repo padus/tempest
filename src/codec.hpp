@@ -713,22 +713,6 @@ public:
     return (data.size());
   }
 
-  size_t ReadREST(Log& log, vector<string>& data) {
-    //
-    // Return the number of events/observation read from tempest
-    // or 0 if error
-    //
-    data.clear();
-
-    ostringstream event{""};
-
-    event << "WeatherFlow REST Format";
-
-    if (!(event.str().empty())) data.emplace_back(event.str());
-
-    return (data.size());
-  }
-
 private:
 
   Hub& GetHub(const string& hub_id) {

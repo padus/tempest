@@ -4,8 +4,24 @@
 # Copyright:   (c) 2020 Mirco Caramori
 # Repository:  https://github.com/mircolino/tempest
 #
-# Description: things I need to do...
+# Description: Project notes
+#
+
+#
+# Todo
 #
 
 - save precipitation accumulation to file at exit and reload it at start
-- makerAPI interface
+- MQTT
+
+
+#
+# Notes
+#
+
+grep tempest /var/log/daemon.log
+tail -f -n 1000 /var/log/daemon.log  | grep tempest
+tail -f -n 200 /var/log/syslog
+
+sudo service rsyslog start
+sudo rm /var/log/syslog

@@ -139,10 +139,8 @@ To display relay statistics:
 
   Commands:
 
-  Relay:        tempest --url=<url> [--format=<fmt>] [--interval=<min>]
-                        [--log=<lev>] [--daemon]
-  Trace:        tempest --trace [--format=<fmt>] [--interval=<min>]
-                        [--log=<lev>]
+  Relay:        tempest --url=<url> [--interval=<min>] [--log=<lev>] [--daemon]
+  Trace:        tempest --trace [--interval=<min>] [--log=<lev>]
   Stop:         tempest --stop
   Stats:        tempest --stats
   Version:      tempest --version
@@ -151,8 +149,6 @@ To display relay statistics:
   Options:
 
   -u | --url=<url>      full URL to relay data to
-  -f | --format=<fmt>   format to which the UDP data is repackaged:
-                        1) REST API, 2) Ecowitt (default if omitted: 2)
   -i | --interval=<min> interval in minutes at which data is relayed:
                         1 <= min <= 30 (default if omitted: 5)
   -l | --log=<lev>      1) only errors
@@ -161,8 +157,8 @@ To display relay statistics:
                         4) errors, warnings, info and debug (everything)
   -d | --daemon         run as a background daemon
   -t | --trace          relay data to the terminal standard output
-                        (if both --format and --interval are omitted
-                        the source UDP JSON will be traced instead)
+                        (if --interval is omitted the source UDP JSON
+                        will be traced instead)
   -s | --stop           stop relaying/tracing and exit gracefully
   -x | --stats          print relay statistics
   -v | --version        print version information
@@ -170,7 +166,7 @@ To display relay statistics:
 
   Examples:
 
-  tempest --url=http://hubitat.local:39501 --format=2 --interval=5 --daemon
+  tempest --url=http://hubitat.local:39501 --interval=5 --daemon
   tempest -u=192.168.1.100:39500 -l=2 -d
   tempest --stop
   ```

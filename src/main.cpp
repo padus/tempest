@@ -24,6 +24,8 @@
 //              added buinary build platform and cpu directory identifiers 
 //              updated readme
 // 2021.05.05:  v1.1.56
+//              removed format command line argument
+// 2021.06.24   v1.1.82
 //
 
 // Includes -------------------------------------------------------------------------------------------------------------------
@@ -39,7 +41,7 @@
 
 // Source ---------------------------------------------------------------------------------------------------------------------
 
-#define TEMPEST_VERSION         "v1.1.56"
+#define TEMPEST_VERSION         "v1.1.82"
 
 using namespace std;
 using namespace tempest;
@@ -84,10 +86,9 @@ int main(int argc, char* const argv[]) {
     }
 
     string url;
-    Relay::Format format;
     int interval;
 
-    if (args.IsCommandRelay(url, format, interval, text) || args.IsCommandTrace(format, interval, text)) {
+    if (args.IsCommandRelay(url, interval, text) || args.IsCommandTrace(interval, text)) {
       //
       // Start trasmitting or tracing (if url is empty)
       //
@@ -116,7 +117,7 @@ int main(int argc, char* const argv[]) {
       //
       // Start relay
       // 
-      Relay relay{url, format, interval, facility, level};
+      Relay relay{url, interval, facility, level};
 
       // Worker thread should not receive signals
       ipc.BlockSignals();

@@ -26,15 +26,14 @@ using namespace std;
 // Argument presence
 
 #define TEMPEST_ARG_URL         0b0000000000000001
-#define TEMPEST_ARG_FORMAT      0b0000000000000010
-#define TEMPEST_ARG_INTERVAL    0b0000000000000100
-#define TEMPEST_ARG_LOG         0b0000000000001000
-#define TEMPEST_ARG_DAEMON      0b0000000000010000
-#define TEMPEST_ARG_TRACE       0b0000000000100000
-#define TEMPEST_ARG_STOP        0b0000000001000000
-#define TEMPEST_ARG_STATS       0b0000000010000000
-#define TEMPEST_ARG_VERSION     0b0000000100000000
-#define TEMPEST_ARG_HELP        0b0000001000000000
+#define TEMPEST_ARG_INTERVAL    0b0000000000000010
+#define TEMPEST_ARG_LOG         0b0000000000000100
+#define TEMPEST_ARG_DAEMON      0b0000000000001000
+#define TEMPEST_ARG_TRACE       0b0000000000010000
+#define TEMPEST_ARG_STOP        0b0000000000100000
+#define TEMPEST_ARG_STATS       0b0000000001000000
+#define TEMPEST_ARG_VERSION     0b0000000010000000
+#define TEMPEST_ARG_HELP        0b0000000100000000
 
 #define TEMPEST_ARG_EMPTY       0b0100000000000000
 #define TEMPEST_ARG_INVALID     0b1000000000000000
@@ -49,13 +48,13 @@ using namespace std;
 #define TEMPEST_REQ_VERSION(c)  ((c & TEMPEST_ARG_VERSION) == TEMPEST_ARG_VERSION)
 #define TEMPEST_REQ_HELP(c)     ((c & TEMPEST_ARG_HELP) == TEMPEST_ARG_HELP)
 
-#define TEMPEST_UDP_TRACE(c)    ((c & (TEMPEST_ARG_TRACE | TEMPEST_ARG_FORMAT | TEMPEST_ARG_INTERVAL)) == TEMPEST_ARG_TRACE)
+#define TEMPEST_UDP_TRACE(c)    ((c & (TEMPEST_ARG_TRACE | TEMPEST_ARG_INTERVAL)) == TEMPEST_ARG_TRACE)
 
 // Mask to validate the presence of only required and optional argument(s) that make a specific command valid
 // Expand to TRUE if not only required and optional arguments are present
 
-#define TEMPEST_INV_RELAY(c)    (c & ~(TEMPEST_ARG_URL | TEMPEST_ARG_FORMAT | TEMPEST_ARG_INTERVAL | TEMPEST_ARG_LOG | TEMPEST_ARG_DAEMON))
-#define TEMPEST_INV_TRACE(c)    (c & ~(TEMPEST_ARG_TRACE | TEMPEST_ARG_FORMAT | TEMPEST_ARG_INTERVAL | TEMPEST_ARG_LOG))
+#define TEMPEST_INV_RELAY(c)    (c & ~(TEMPEST_ARG_URL | TEMPEST_ARG_INTERVAL | TEMPEST_ARG_LOG | TEMPEST_ARG_DAEMON))
+#define TEMPEST_INV_TRACE(c)    (c & ~(TEMPEST_ARG_TRACE | TEMPEST_ARG_INTERVAL | TEMPEST_ARG_LOG))
 #define TEMPEST_INV_STOP(c)     (c & ~(TEMPEST_ARG_STOP))
 #define TEMPEST_INV_STATS(c)    (c & ~(TEMPEST_ARG_STATS))
 #define TEMPEST_INV_VERSION(c)  (c & ~(TEMPEST_ARG_VERSION))
@@ -94,7 +93,6 @@ public:
 
     // Initialize options to default state
     url_ = "";
-    format_ = 2;
     interval_ = 5;
     log_ = 3;
 
@@ -120,14 +118,6 @@ public:
             url_ = arg;
 
             cmdl_ |= TEMPEST_ARG_URL;
-            break;
-
-          case 'f':
-            num = stoi(arg);
-            if (num < 1 || num > 2) throw out_of_range(arg);
-            format_ = num;
-
-            cmdl_ |= TEMPEST_ARG_FORMAT;
             break;
 
           case 'i':
@@ -187,7 +177,6 @@ public:
         if (TEMPEST_INV_TRACE(cmdl_)) throw invalid_argument("trace");
 
         if (TEMPEST_UDP_TRACE(cmdl_)) {
-          format_ = 0;
           interval_ = 0;
         }
       }
@@ -249,20 +238,18 @@ public:
     return (cmdl_ & TEMPEST_ARG_DAEMON);
   }
 
-  bool IsCommandRelay(string& url, Relay::Format& format, int& interval, string& str) const {
+  bool IsCommandRelay(string& url, int& interval, string& str) const {
     //
     // Return whether the relay command was invoked and all its parameters
     //
     if (TEMPEST_INV_RELAY(cmdl_)) return (false);
 
     url = url_;
-    format = FormatNum2Enum(format_);
     interval = interval_;
 
     ostringstream text{""};
 
     text << "tempest --url=" << url_;
-    text << " --format=" << format_;
     text << " --interval=" << interval_;
     text << " --log=" << log_;
     if (IsCommandDaemon()) text << " --daemon";
@@ -271,19 +258,17 @@ public:
     return (true);
   }
 
-  bool IsCommandTrace(Relay::Format& format, int& interval, string& str) const {
+  bool IsCommandTrace(int& interval, string& str) const {
     //
     // Return whether the trace command was invoked and all its parameters
     //
     if (TEMPEST_INV_TRACE(cmdl_)) return (false);
 
-    format = FormatNum2Enum(format_);
     interval = interval_;
 
     ostringstream text{""};
 
     text << "tempest --trace";
-    text << " --format=" << format_;
     text << " --interval=" << interval_;
     text << " --log=" << log_;
     str = text.str();
@@ -337,13 +322,6 @@ public:
 
  private:
 
-  static Relay::Format FormatNum2Enum(int num) {
-    const Relay::Format format_native[3]{Relay::Format::JSON, Relay::Format::REST, Relay::Format::ECOWITT};
-
-    assert(num >= 0 && num <= 2);
-    return (format_native[num]);
-  }
-
   static Log::Level LogNum2Enum(int num) {
     const Log::Level log_native[5]{Log::Level::emergency, Log::Level::error, Log::Level::warning, Log::Level::info, Log::Level::debug};
 
@@ -375,7 +353,6 @@ public:
   }
 
   string url_;
-  int format_;
   int interval_;
   int log_;
 
@@ -390,10 +367,8 @@ const char* const Arguments::usage_[] = {
   "",
   "Commands:",
   "",
-  "Relay:        tempest --url=<url> [--format=<fmt>] [--interval=<min>]",
-  "                      [--log=<lev>] [--daemon]",
-  "Trace:        tempest --trace [--format=<fmt>] [--interval=<min>]",
-  "                      [--log=<lev>]",
+  "Relay:        tempest --url=<url> [--interval=<min>] [--log=<lev>] [--daemon]",
+  "Trace:        tempest --trace [--interval=<min>] [--log=<lev>]",
   "Stop:         tempest --stop",
   "Stats:        tempest --stats",
   "Version:      tempest --version",
@@ -402,8 +377,6 @@ const char* const Arguments::usage_[] = {
   "Options:",
   "",
   "-u | --url=<url>      full URL to relay data to",
-  "-f | --format=<fmt>   format to which the UDP data is repackaged:",
-  "                      1) REST API, 2) Ecowitt (default if omitted: 2)",
   "-i | --interval=<min> interval in minutes at which data is relayed:",
   "                      1 <= min <= 30 (default if omitted: 5)",
   "-l | --log=<lev>      1) only errors",
@@ -412,8 +385,8 @@ const char* const Arguments::usage_[] = {
   "                      4) errors, warnings, info and debug (everything)",
   "-d | --daemon         run as a background daemon",
   "-t | --trace          relay data to the terminal standard output",
-  "                      (if both --format and --interval are omitted",
-  "                      the source UDP JSON will be traced instead)",
+  "                      (if --interval is omitted the source UDP JSON",
+  "                      will be traced instead)",
   "-s | --stop           stop relaying/tracing and exit gracefully",
   "-x | --stats          print relay statistics",
   "-v | --version        print version information",
@@ -421,7 +394,7 @@ const char* const Arguments::usage_[] = {
   "",
   "Examples:",
   "",
-  "tempest --url=http://hubitat.local:39501 --format=2 --interval=5 --daemon",
+  "tempest --url=http://hubitat.local:39501 --interval=5 --daemon",
   "tempest -u=192.168.1.100:39500 -l=2 -d",
   "tempest --stop",
   nullptr
@@ -429,7 +402,6 @@ const char* const Arguments::usage_[] = {
 
 const struct option Arguments::option_[] = {
   {"url",      required_argument, 0, 'u'},
-  {"format",   required_argument, 0, 'f'},
   {"interval", required_argument, 0, 'i'},
   {"log",      required_argument, 0, 'l'},
   {"daemon",   no_argument,       0, 'd'},

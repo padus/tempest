@@ -26,14 +26,8 @@ using namespace std;
 class Relay: Tempest {
 public:
 
-  enum Format {
-    JSON = 0,
-    REST = 1,
-    ECOWITT = 2
-  };
-
-  Relay(const string& url, Format format, int interval, Log::Facility facility, Log::Level level, int port = 50222, int buffer_max = 1024, int queue_max = 128, int io_timeout = 1):
-    Tempest(queue_max), url_{url}, format_{format}, interval_{interval? (interval * 60): 60}, facility_{facility}, level_{level}, port_{port}, buffer_max_{buffer_max}, io_timeout_{io_timeout} {}
+  Relay(const string& url, int interval, Log::Facility facility, Log::Level level, int port = 50222, int buffer_max = 1024, int queue_max = 128, int io_timeout = 1):
+    Tempest(queue_max), url_{url}, interval_{interval * 60}, facility_{facility}, level_{level}, port_{port}, buffer_max_{buffer_max}, io_timeout_{io_timeout} {}
 
   inline void Stop(void) { Exit(); }
 
@@ -41,7 +35,7 @@ public:
     int err = EXIT_SUCCESS;
     int sock = -1;
 
-    bool trace = (url_.empty() && format_ == Format::JSON);
+    bool trace = url_.empty() && !interval_;
 
     // Initialize log stream
     Log log{facility_, level_};
@@ -138,7 +132,7 @@ public:
     // Initialize log
     Log log{facility_, level_};
 
-    bool trace = url_.empty() && format_ != Format::JSON;
+    bool trace = url_.empty() && interval_;
 
     vector<string> data;
     size_t event;
@@ -293,7 +287,7 @@ private:
     transmitter_.wait_for(lock, chrono::seconds(interval_));
     // == cv_status::timeout
 
-    return ((format_ == Format::REST)? ReadREST(log, data): ReadEcowitt(log, data));
+    return (ReadEcowitt(log, data));
   }
 
   condition_variable transmitter_;
@@ -304,7 +298,6 @@ private:
   const int io_timeout_;
   const int port_;
   const string url_;
-  const Format format_;
   const int interval_;                                          // in seconds
   const Log::Level level_;
   const Log::Facility facility_;
