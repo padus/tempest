@@ -1,8 +1,8 @@
 #
-# Project:     C/C++ Makefile
+# App:         WeatherFlow Tempest UDP Relay 
 # Author:      Mirco Caramori
 # Copyright:   (c) 2020 Mirco Caramori
-# Repository:  https://github.com/mircolino/makefile
+# Repository:  https://github.com/padus/tempest
 #
 # Description: application builder
 #

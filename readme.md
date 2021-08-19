@@ -2,7 +2,7 @@
 
 A fast and efficient UDP relay service designed to receive WeatherFlow Tempest locally broadcasted [UDP JSON data](https://weatherflow.github.io/SmartWeather/api/udp/v143/), optionally repackage it into the Ecowitt format, and then POST it to Hubitat for consumption.
 
-![Diagram](https://github.com/mircolino/tempest/raw/master/images/diagram.jpg "Relay Diagram")
+![Diagram](https://github.com/padus/tempest/raw/main/images/diagram.jpg "Relay Diagram")
 
 ## Features
 
@@ -29,7 +29,7 @@ For the relay to properly receive UDP data from the WeatherFlow Tempest station,
 Now that UDP port 50222 is open let's test the relay to make sure it's properly receiving UDP data from the weather station. Download the relay from github, make it executable and then start it in tracing mode:
 
 ```text
-  ~# wget https://github.com/mircolino/tempest/raw/master/bin/linux_x86_64/tempest
+  ~# wget https://github.com/padus/tempest/raw/main/bin/linux_x86_64/tempest
   ~# chmod +x tempest
   ~# ./tempest --trace
 ```
@@ -45,7 +45,7 @@ If the relay starts displaying incoming UDP data, it means everything is working
 For the relay to automatically start every time the host boots up, it needs to be installed as a system service. Download the relay from github and make it executable:
 
 ```text
-  ~# sudo wget -P /usr/local/bin https://github.com/mircolino/tempest/raw/master/bin/linux_x86_64/tempest
+  ~# sudo wget -P /usr/local/bin https://github.com/padus/tempest/raw/main/bin/linux_x86_64/tempest
   ~# sudo chmod +x /usr/local/bin/tempest
 ```
 
@@ -85,7 +85,7 @@ If the relay service is running correctly, the next command should display a gre
   ~# sudo systemctl status tempest
 ```
 
-![Service](https://github.com/mircolino/tempest/raw/master/images/service.png "Tempest Service")
+![Service](https://github.com/padus/tempest/raw/main/images/service.png "Tempest Service")
 
 ### Update the UDP Relay
 
@@ -100,7 +100,7 @@ To update the relay:
 ```text
   ~# sudo systemctl stop tempest
   ~# sudo rm /usr/local/bin/tempest
-  ~# sudo wget -P /usr/local/bin https://github.com/mircolino/tempest/raw/master/bin/linux_x86_64/tempest
+  ~# sudo wget -P /usr/local/bin https://github.com/padus/tempest/raw/main/bin/linux_x86_64/tempest
   ~# sudo chmod +x /usr/local/bin/tempest
   ~# sudo systemctl start tempest
 ```

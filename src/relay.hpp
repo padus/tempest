@@ -2,7 +2,7 @@
 // App:         WeatherFlow Tempest UDP Relay
 // Author:      Mirco Caramori
 // Copyright:   (c) 2020 Mirco Caramori
-// Repository:  https://github.com/mircolino/tempest
+// Repository:  https://github.com/padus/tempest
 //
 // Description: transmit JSON/Ecowitt data to the specified host (Hubitat)
 //
